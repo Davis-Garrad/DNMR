@@ -1,0 +1,9 @@
+LICENSE
+pyproject.toml
+src/TNMRPlot/__init__.py
+src/TNMRPlot/fileops.py
+src/TNMRPlot/gui.py
+src/TNMRPlot.egg-info/PKG-INFO
+src/TNMRPlot.egg-info/SOURCES.txt
+src/TNMRPlot.egg-info/dependency_links.txt
+src/TNMRPlot.egg-info/top_level.txt
