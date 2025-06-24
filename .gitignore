@@ -1,2 +1,4 @@
-__pycache__/*
+__pycache__/
 deprecated/
+src/TNMRPlot/__pycache__/
+*.pyc

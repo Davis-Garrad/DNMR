@@ -85,7 +85,13 @@ def get_tnt_data(fn: str):
     data['reals'] = reals
     data['imags'] = imags
     data['times'] = times*1e6
-    data['relaxation_times'] = np.array([5000000/(np.pow(2.718, n)) for n in range(0, data['size'])])
+    tnt_delay_table = [5_000_000, 2_600_000, 1_350_000, 700_000, 360_000, 190_000, 98000, 51000, 26000, 13600, 7100, 3700, 1900, 988, 512, 266, 138, 72, 37, 19, 10, 1]
+    data['sequence'] = data_struct({'0': data_struct({'relaxation_time': tnt_delay_table})})
+    #data['relaxation_times'] = np.array([5_000_000, 2_600_000, 1_350_000, 700_000, 360_000, 190_000, 98000, 51000, 26000, 13600, 7100, 3700, 1900, 988, 512, 266, 138, 72, 37, 19, 10, 1])
+    #tmp = np.copy(data['relaxation_times'])
+    #for i in range(len(tmp)):
+    #    data['relaxation_times'][-i-1] = tmp[i]
+    
     # TODO
     magf = re.search('.*?(?P<magfield>\\d+([.]\\d+)?)Oe.*?', fn)
     freq = re.search('.*?(?P<freq>\\d+([.]\\d+)?)MHz.*?', fn)
@@ -162,10 +168,11 @@ def get_data(fn: str):
             for key, val in file[i].items():
                 if(key[:5] == 'tnmr_'):
                     key = key[5:]
+                # legacy logic
+                if(key == 'relaxation_time'):
+                    key = 'delay_time'
+                # end of legacy logic
                 data[key][index] = val
-
-        # specials
-        data['relaxation_times'] = [ np.array(file[i]['tnmr_sequence']['0']['relaxation_time']) for i in points ]
         
         for key, val in data.items():
             # check if we can turn it into a dict, then numpy array
@@ -180,7 +187,8 @@ def get_data(fn: str):
                     data[key] = arr
                 except:
                     pass
-        data['times'] = data['times'][:,:1024]
+        print(data)
+        data['times'] = data['times'][:,:1024] # also legacy.
     return data
 
 

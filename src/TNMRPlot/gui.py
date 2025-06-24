@@ -21,6 +21,7 @@ from TNMRPlot.tab_fourier_transform import *
 from TNMRPlot.tab_t1_fitting import *
 from TNMRPlot.tab_field_scan import *
 from TNMRPlot.tab_peak_amplitude import *
+from TNMRPlot.tab_inv_laplace import *
 
 class MainWindow(QWidget):
     def __init__(self, parent=None):
@@ -38,12 +39,14 @@ class MainWindow(QWidget):
         self.tab_t1 = TabT1Fit(data_widgets, self)
         self.tab_fieldscan = TabFieldScan(data_widgets, self)
         self.tab_peakamp = TabPeakAmplitude(data_widgets, self)
+        self.tab_inv_laplace = TabInvLaplace(data_widgets, self)
 
         self.tabwidget_tabs.addTab(self.tab_phaseadj, 'Phase Adj.')
         self.tabwidget_tabs.addTab(self.tab_ft, 'FT')
         self.tabwidget_tabs.addTab(self.tab_t1, 'T1 Fit')
         self.tabwidget_tabs.addTab(self.tab_fieldscan, 'Field Scan')
         self.tabwidget_tabs.addTab(self.tab_peakamp, 'Peak Amplitudes')
+        self.tabwidget_tabs.addTab(self.tab_inv_laplace, 'Inverse Laplace')
         self.tabwidget_tabs.currentChanged.connect(lambda: self.tabwidget_tabs.currentWidget().update())
 
         layout = QVBoxLayout()

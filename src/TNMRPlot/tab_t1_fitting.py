@@ -24,6 +24,7 @@ class TabT1Fit(Tab):
         self.data = (np.array([]), np.array([]))
         self.plot_data = (np.array([]), np.array([]))
         self.x0 = None
+        self.sigmas = None
 
     def generate_layout(self):
         self.combobox_fittingroutine = QComboBox()
@@ -54,7 +55,10 @@ class TabT1Fit(Tab):
         lo.addWidget(c)
         lo.addWidget(d)
         seven_halves_frame.setLayout(lo)
-        self.output_frames['7/2 Spin'] = [ seven_halves_frame, {'widget':a, 'label':'y0'}, {'widget': b, 'label': 's'}, {'widget': c, 'label': 'T1'}, {'widget': d, 'label': 'r'} ]
+        self.output_frames['7/2 Spin'] = [ seven_halves_frame, {'widget':a, 'label':'y0', 'units': ''}, 
+                                                               {'widget': b, 'label': 's', 'units': ''}, 
+                                                               {'widget': c, 'label': 'T1', 'units': '\u03bcs'}, 
+                                                               {'widget': d, 'label': 'r', 'units': ''} ]
 
         l.addWidget(seven_halves_frame)
 
@@ -64,6 +68,10 @@ class TabT1Fit(Tab):
         freq = self.data_widgets['tab_ft'].data[0]
         ft   = self.data_widgets['tab_ft'].data[1]
         real = np.real(ft)
+        try:
+            del_times = self.fileselector.data.sequence['0'].delay_time
+        except:
+            del_times = self.fileselector.data.sequence['0'].relaxation_time # Legacy
 
         #for i in range(real.shape[0]):
         #    kernel = np.exp(-1/2 * np.square(np.linspace(-3, 3, 15)))
@@ -85,10 +93,13 @@ class TabT1Fit(Tab):
             integrations /= np.max(integrations)
         
         self.ax.set_xscale('log')
-        self.ax.set_xlabel('relaxation time (us)')
-        self.ax.plot(self.fileselector.data.relaxation_times, integrations, label='integrations', linestyle='', marker='o')
+        self.ax.set_xlabel('delay time (us)')
+        self.ax.plot(del_times, integrations, label='integrations', linestyle='', marker='o')
+        
+        post_aq_max = np.max(self.fileselector.data.params.post_acquisition_time * 1e3) # this is in ms. Our axes in us
+        self.ax.axvline(post_aq_max, linestyle='--', color='k')
 
-        self.data = (self.fileselector.data.relaxation_times, integrations)
+        self.data = (del_times, integrations)
 
         if(self.plot_data[0].shape[0] > 0):
             self.ax.plot(self.plot_data[0], self.plot_data[1], label='fit')
@@ -99,10 +110,15 @@ class TabT1Fit(Tab):
             val[0].hide()
         out_frame = self.output_frames[self.combobox_fittingroutine.currentText()]
         out_frame[0].show()
+        try:
+            del_times = self.fileselector.data.sequence['0'].delay_time
+        except:
+            del_times = self.fileselector.data.sequence['0'].relaxation_time # Legacy, as I didn't know what this was when I wrote it. Surprise, surprise
 
         if(self.combobox_fittingroutine.currentText() == '7/2 Spin'):
-            #bounds = [ [ -np.inf, np.inf ], [-1, 10], [np.min(self.fileselector.rel_times), np.max(self.fileselector.rel_times)*10], [-1.2, 1.2] ]
-            bounds = [ [0, np.max(self.data[1])*10], [-1, 10], [np.min(self.fileselector.data.relaxation_times)/10, np.max(self.fileselector.data.relaxation_times)*10], [0.99, 1.01] ]
+            # DEVELOPER NOTE: If you want to add more options for this, make sure to define fit_func (similarly to below) and add an item in the generate_layout function
+            
+            bounds = [ [0, np.max(self.data[1])*10], [-1, 10], [np.min(del_times)/10, np.max(del_times)*10], [0.99*0, 1.01*10] ]
             def fit_func(args, x):
                 gamma_0 = args[0]
                 s = args[1] # inversion
@@ -117,31 +133,37 @@ class TabT1Fit(Tab):
                                          ))
                 return fit
         def cost_func(args, x, y):
-            #gaps = np.zeros_like(x[:-1]) # for points that are much closer together, it matters proportionally less that all of them are perfectly fit as they each contribute to the cost
-            #gaps = x[1:] - x[:-1]
-            #dx = np.zeros_like(x)
-            #dx[1:] += gaps/2.0
-            #dx[:-1] += gaps/2.0
-            #dx /= dx
-            # essentially, minimize the integral of the squared differences
+            return np.sum(np.square((fit_func(args, x) - y))) # more points is more fits
 
-            #return np.sum(np.square((fit_func(args, x) - y) * dx))
-            return np.sum(np.square((fit_func(args, x) - y)))
-
-        #popt, pcov = sp.optimize.curve_fit(fit_func, self.data[0][10:], self.data[1][10:], bounds=bounds)
-        #res = sp.optimize.minimize(lambda x: cost_func(x, self.data[0], self.data[1]), x0=[0]*4 if self.x0 is None else self.x0, method='Nelder-Mead', bounds=bounds)
         if(self.checkbox_normalize.isChecked()):
             d0 = self.data[0]
             d1 = self.data[1] / np.max(self.data[1])
             self.data = (d0, d1)
+            
+        # global minimum
         res = sp.optimize.differential_evolution(lambda x: cost_func(x, 
                                                                      self.data[0], 
                                                                      self.data[1]), 
                                                  bounds=bounds)
-        #res = sp.optimize.brute(lambda x: cost_func(x, self.data[0], self.data[1]), bounds)
+        # get uncertainties on the fit, as I am too lazy to do the full analysis when scipy will do it for me
+        popt, pcov = sp.optimize.curve_fit(lambda xs, *args: fit_func(args, xs), self.data[0], self.data[1], p0=res.x)
+        
         print(res)
-        self.x0 = res.x
-        self.plot_data = (self.data[0], fit_func(res.x, self.data[0]))
+        self.x0 = popt
+        self.sigmas = np.sqrt(np.diag(pcov))
+        self.plot_data = (self.data[0], fit_func(popt, self.data[0]))
         for i in range(len(self.x0)):
-            out_frame[i+1]['widget'].setText(f'{out_frame[i+1]["label"]}={self.x0[i]}')
+            try:
+                digits = int(np.ceil(np.abs(np.log10(self.sigmas[i]))))
+            except:
+                digits = 10000 # sigma negative - a sign that something has gone horribly wrong and the user should deal with the drama. Show them the digits.
+            if(self.sigmas[i] > 1.0):
+                rounded_digits = -digits+1
+            else:
+                rounded_digits = digits
+                
+            display_sigma = np.round(self.sigmas[i], rounded_digits)
+            display_x = np.round(self.x0[i], rounded_digits)
+            
+            out_frame[i+1]['widget'].setText(f'{out_frame[i+1]["label"]}={display_x:,}\u00b1{display_sigma:,}{out_frame[i+1]["units"]}')
         self.update()

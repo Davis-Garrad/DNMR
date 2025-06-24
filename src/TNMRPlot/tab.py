@@ -16,6 +16,8 @@ class Tab(QWidget):
         
         self.data_widgets = data_widgets
         self.data_widgets[name] = self
+        
+        self._name = name
 
         # layout stuff
         layout = QVBoxLayout()
@@ -32,13 +34,15 @@ class Tab(QWidget):
         self.fileselector.callbacks += [self.update]
 
     def generate_layout(self):
+        print(f'GENERATE_LAYOUT ({self._name})')
         return None
     
     def update(self):
+        print(f'UPDATE ({self._name})')
         self.plot()
 
     def plot_logic(self):
-        print('fail')
+        print(f'UNIMPLEMENTED PLOT_LOGIC ({self._name})')
         pass
 
     def plot(self):
@@ -51,8 +55,14 @@ class Tab(QWidget):
         if not(self.fileselector.checkbox_holdplots.isChecked()):
             self.ax.clear()
 
-        self.plot_logic()
-        
+        try:
+            print(f'PLOT_LOGIC ({self._name})')
+            self.plot_logic()
+        except:
+            print(f'Failure in plot_logic\n{"-"*100}')
+            traceback.print_exc()
+            print("-"*100)
+            
         # Thanks, azelcer (https://stackoverflow.com/questions/70336467/keep-zoom-and-ability-to-zoom-out-to-current-data-extent-in-matplotlib-pyplot)
         self.ax.relim()
         self.ax.autoscale()
