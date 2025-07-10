@@ -2,6 +2,7 @@ import traceback
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import *
+import numpy as np
 
 import TNMRPlot.fileops as fileops
 
@@ -21,6 +22,36 @@ class PhaseAdjustmentWidget(QWidget):
         layout.addWidget(self.slider_phase)
         self.setLayout(layout)
 
+class FileInfoWidget(QWidget):
+    def __init__(self, parent=None):
+        super(FileInfoWidget, self).__init__(parent)
+        
+        self.listview_docinfo = QListWidget()
+        
+        layout = QVBoxLayout()
+        layout.addWidget(self.listview_docinfo)
+        self.setLayout(layout)
+        
+    def update_items(self, d, length=None, prefix=''):
+        '''Takes a data_struct'''
+        if(length is None):
+            length = d['size']
+        for i in list(d.keys()):
+            if(isinstance(d[i], fileops.data_struct)):
+                self.update_items(d[i], length=length, prefix=prefix+str(i)+'/')
+            elif(isinstance(d[i], np.ndarray)):
+                if(d[i].ndim == 1):
+                    s = '\n'.join([ f'\t{j}: ' + str(d[i][j]) for j in range(length) ])
+                    self.listview_docinfo.addItem(f'{prefix+i} (array, len={d[i].shape[0]})='+'{\n'+s+'\n}')
+                elif(d[i].ndim == 2):
+                    # first index is scan index, second is datapoint
+                    s = '\n'.join([ f'\t{j}: ' + str(d[i][j]) for j in range(length) ])
+                    self.listview_docinfo.addItem(f'{prefix+i} (array, len={d[i].shape[0]}x{d[i].shape[1]})='+'{\n'+s+'\n}')
+            else:
+                self.listview_docinfo.addItem(f'{prefix+i}={d[i]}')
+                
+                    
+
 class FileSelectionWidget(QWidget):
     def __init__(self, parent=None):
         super(FileSelectionWidget, self).__init__(parent)
@@ -28,6 +59,8 @@ class FileSelectionWidget(QWidget):
         self.filedialog = QFileDialog()
         self.button_load = QPushButton('Load')
         self.button_load.clicked.connect(self.open_file)
+        self.button_info = QPushButton('Info')
+        self.button_info.clicked.connect(self.file_info)
         self.label_index = QLabel('Index:')
         self.spinbox_index = QSpinBox()
         self.label_channel = QLabel('Channel:')
@@ -35,7 +68,10 @@ class FileSelectionWidget(QWidget):
         self.checkbox_holdplots = QCheckBox('Hold plots')
 
         layout = QHBoxLayout()
-        layout.addWidget(self.button_load)
+        l0 = QVBoxLayout()
+        l0.addWidget(self.button_load)
+        l0.addWidget(self.button_info)
+        layout.addLayout(l0)
         l = QHBoxLayout()
         l.addWidget(self.label_index)
         l.addWidget(self.spinbox_index)
@@ -54,6 +90,8 @@ class FileSelectionWidget(QWidget):
         self._fn = [''] # for all channels
         self.data = {}
         self._data = [{}] # for all channels
+        
+        self.infodialogs = []
 
         self.callbacks = []
         self.spinbox_index.valueChanged.connect(self.callback)
@@ -91,3 +129,11 @@ class FileSelectionWidget(QWidget):
             self.callback()
         except Exception as e:
             traceback.print_exc()
+            
+    def file_info(self):
+        if(len(list(self.data.keys())) != 0):
+            self.infodialogs += [FileInfoWidget()] # must be stored somewhere, or python garbage collection will clean it up and close the window
+            self.infodialogs[-1].update_items(self.data)
+            self.infodialogs[-1].setWindowTitle(f'Info on {self._fn[self.spinbox_channel.value()]}')
+            self.infodialogs[-1].show()
+    

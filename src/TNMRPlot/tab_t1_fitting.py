@@ -42,25 +42,22 @@ class TabT1Fit(Tab):
         l.addLayout(lv)
         l.addWidget(self.pushbutton_fit)
 
-        # fit output
-        seven_halves_frame = QFrame() # TODO: Make this better.
-        seven_halves_frame.hide()
-        lo = QVBoxLayout()
-        a = QLabel('fitting...')
-        b = QLabel('fitting...')
-        c = QLabel('fitting...')
-        d = QLabel('fitting...')
-        lo.addWidget(a)
-        lo.addWidget(b)
-        lo.addWidget(c)
-        lo.addWidget(d)
-        seven_halves_frame.setLayout(lo)
-        self.output_frames['7/2 Spin'] = [ seven_halves_frame, {'widget':a, 'label':'y0', 'units': ''}, 
-                                                               {'widget': b, 'label': 's', 'units': ''}, 
-                                                               {'widget': c, 'label': 'T1', 'units': '\u03bcs'}, 
-                                                               {'widget': d, 'label': 'r', 'units': ''} ]
+        def add_fit_frame(name, *args):
+            # fit output
+            frm = QFrame() # TODO: Make this better.
+            frm.hide()
+            lo = QVBoxLayout()
+            self.output_frames[name] = [ frm ]
+            for i in range(len(args)//2):
+                w = QLabel('fitting...')
+                lo.addWidget(w)
+                self.output_frames[name] += [ {'widget': w, 'label': args[2*i], 'units': args[2*i+1] } ]
+                
+            frm.setLayout(lo)
+            l.addWidget(frm)
 
-        l.addWidget(seven_halves_frame)
+        # Title, var_name, var_units, var_name, var_units, ...
+        add_fit_frame('7/2 Spin', 'y0', '', 's', '', 'T1', '\u03bcs', 'r', '')
 
         return l
 
@@ -72,13 +69,7 @@ class TabT1Fit(Tab):
             del_times = self.fileselector.data.sequence['0'].delay_time
         except:
             del_times = self.fileselector.data.sequence['0'].relaxation_time # Legacy
-
-        #for i in range(real.shape[0]):
-        #    kernel = np.exp(-1/2 * np.square(np.linspace(-3, 3, 15)))
-        #    kernel /= np.sum(kernel)
-        #    real[i] = np.convolve(real[i], kernel, mode='same')
-
-        #self.ax.plot(real[0], label='filtered')
+            print(del_times)
 
         integrations = np.zeros(real.shape[0])
         start_index = np.argmin(np.abs(self.data_widgets['tab_ft'].left_pivot - freq))
@@ -91,15 +82,23 @@ class TabT1Fit(Tab):
         integrations = np.sum(real[:,start_index:end_index], axis=1)
         if(self.checkbox_normalize.isChecked()):
             integrations /= np.max(integrations)
+        rt = np.real(self.data_widgets['tab_ft'].data[1])
+        uncertainties = np.ones_like(integrations)*1e-3#np.std(rt, axis=1)/np.max(np.abs(rt), axis=1)*integrations # TODO: Figure out real stddevs
+        uncertainties = np.abs(uncertainties)
+            
+        sort_indices = np.argsort(del_times)
+        del_times = del_times[sort_indices]
+        integrations = integrations[sort_indices]
+        uncertainties = uncertainties[sort_indices]
         
         self.ax.set_xscale('log')
         self.ax.set_xlabel('delay time (us)')
-        self.ax.plot(del_times, integrations, label='integrations', linestyle='', marker='o')
+        self.ax.errorbar(del_times, integrations, label='integrations', linestyle='', marker='o', yerr=uncertainties)
         
         post_aq_max = np.max(self.fileselector.data.params.post_acquisition_time * 1e3) # this is in ms. Our axes in us
         self.ax.axvline(post_aq_max, linestyle='--', color='k')
 
-        self.data = (del_times, integrations)
+        self.data = (del_times, integrations, uncertainties)
 
         if(self.plot_data[0].shape[0] > 0):
             self.ax.plot(self.plot_data[0], self.plot_data[1], label='fit')
@@ -132,38 +131,47 @@ class TabT1Fit(Tab):
                                             (1225/1716)*np.exp(-np.pow(28*x/T1, r)) 
                                          ))
                 return fit
-        def cost_func(args, x, y):
-            return np.sum(np.square((fit_func(args, x) - y))) # more points is more fits
+        def cost_func(args, x, y, yerr):
+            return np.sum(np.square((fit_func(args, x) - y)/np.maximum(yerr, 0.01))) # more points is more fits
 
         if(self.checkbox_normalize.isChecked()):
-            d0 = self.data[0]
-            d1 = self.data[1] / np.max(self.data[1])
-            self.data = (d0, d1)
+            if(np.abs(np.max(self.data[1]) - 1.0) > 1e-3):
+                d0 = self.data[0]
+                d1 = self.data[1] / np.max(self.data[1])
+                d2 = self.data[2] / np.max(self.data[1])
+                self.data = (d0, d1, d2)
             
         # global minimum
         res = sp.optimize.differential_evolution(lambda x: cost_func(x, 
                                                                      self.data[0], 
-                                                                     self.data[1]), 
+                                                                     self.data[1],
+                                                                     self.data[2]), 
                                                  bounds=bounds)
         # get uncertainties on the fit, as I am too lazy to do the full analysis when scipy will do it for me
-        popt, pcov = sp.optimize.curve_fit(lambda xs, *args: fit_func(args, xs), self.data[0], self.data[1], p0=res.x)
+        try:
+            popt, pcov = sp.optimize.curve_fit(lambda xs, *args: fit_func(args, xs), self.data[0], self.data[1], p0=res.x)
         
-        print(res)
-        self.x0 = popt
-        self.sigmas = np.sqrt(np.diag(pcov))
-        self.plot_data = (self.data[0], fit_func(popt, self.data[0]))
-        for i in range(len(self.x0)):
-            try:
-                digits = int(np.ceil(np.abs(np.log10(self.sigmas[i]))))
-            except:
-                digits = 10000 # sigma negative - a sign that something has gone horribly wrong and the user should deal with the drama. Show them the digits.
-            if(self.sigmas[i] > 1.0):
-                rounded_digits = -digits+1
-            else:
-                rounded_digits = digits
+            print(res)
+            self.x0 = popt
+            self.sigmas = np.sqrt(np.diag(pcov))
+            x_vals = self.data[0]
+            if(x_vals.shape[0] < 100):
+                x_vals = np.exp(np.linspace(np.log(np.min(x_vals)), np.log(np.max(x_vals)), 100, endpoint=True))
+            self.plot_data = (x_vals, fit_func(popt, x_vals))
+            for i in range(len(self.x0)):
+                try:
+                    digits = int(np.ceil(np.abs(np.log10(self.sigmas[i]))))
+                except:
+                    digits = 10000 # sigma negative - a sign that something has gone horribly wrong and the user should deal with the drama. Show them the digits.
+                if(self.sigmas[i] > 1.0):
+                    rounded_digits = -digits+1
+                else:
+                    rounded_digits = digits
+                    
+                display_sigma = np.round(self.sigmas[i], rounded_digits)
+                display_x = np.round(self.x0[i], rounded_digits)
                 
-            display_sigma = np.round(self.sigmas[i], rounded_digits)
-            display_x = np.round(self.x0[i], rounded_digits)
-            
-            out_frame[i+1]['widget'].setText(f'{out_frame[i+1]["label"]}={display_x:,}\u00b1{display_sigma:,}{out_frame[i+1]["units"]}')
+                out_frame[i+1]['widget'].setText(f'{out_frame[i+1]["label"]}={display_x:,}\u00b1{display_sigma:,}{out_frame[i+1]["units"]}')
+        except Exception as e:
+            traceback.print_exc()
         self.update()

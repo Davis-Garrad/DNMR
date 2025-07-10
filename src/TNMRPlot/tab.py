@@ -6,6 +6,8 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as Navigation
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import *
 
+import traceback
+
 class Tab(QWidget):
     def __init__(self, data_widgets, name, parent=None):
         super(Tab, self).__init__(parent)

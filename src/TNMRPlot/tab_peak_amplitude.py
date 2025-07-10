@@ -72,11 +72,27 @@ class TabPeakAmplitude(Tab):
             self.combobox_labelling.addItem(k)
 
     def plot_logic(self):
-        times = self.data_widgets['tab_phase'].data[0]
-        complexes = self.data_widgets['tab_phase'].data[1]
-        pivot = self.data_widgets['tab_phase'].pivot_location
+        
+        freq = self.data_widgets['tab_ft'].data[0]
+        ft   = self.data_widgets['tab_ft'].data[1]
+        real = np.real(ft)
+        try:
+            del_times = self.fileselector.data.sequence['0'].delay_time
+        except:
+            del_times = self.fileselector.data.sequence['0'].relaxation_time # Legacy
 
-        pivot_index = np.argmin(np.abs(pivot - times[0]))
+        integrations = np.zeros(real.shape[0])
+        start_index = np.argmin(np.abs(self.data_widgets['tab_ft'].left_pivot - freq))
+        end_index = np.argmin(np.abs(self.data_widgets['tab_ft'].right_pivot - freq))
+        if(end_index < start_index):
+            tmp = start_index
+            start_index = end_index
+            end_index = tmp
+
+        integrations = np.sum(ft[:,start_index:end_index], axis=1)
+        integrations /= np.max(np.abs(integrations))
+        integrals = integrations
+
         if(self.combobox_labelling.currentText() == 'Load Order'):
             indices = np.linspace(0, self.fileselector.data['size'], self.fileselector.data['size'], endpoint=False)
         else:
@@ -86,15 +102,16 @@ class TabPeakAmplitude(Tab):
             for K in ks[1:]:
                 d0 = d0[K]
             indices = d0
+            indices = np.reshape(indices, shape=integrals.shape)
         self.ax.set_xlabel(self.combobox_labelling.currentText())
-            
         sorter = np.argsort(indices)
         indices = indices[sorter]
 
-        reals = np.real(complexes)
-        imags = np.imag(complexes)
-
-        self.ax.plot(indices, np.abs(reals + 1j*imags)[:,pivot_index][sorter], 'k', alpha=0.6, label=f'Mag.')
-        self.ax.plot(indices, reals[:,pivot_index][sorter], 'r', alpha=0.6, label='R')
-        self.ax.plot(indices, imags[:,pivot_index][sorter], 'b', alpha=0.6, label='I')
+        reals = np.real(integrals)
+        imags = np.imag(integrals)
+        mags = np.abs(integrals)
+        
+        self.ax.plot(indices, mags[sorter], 'k', alpha=0.6, label=f'Mag.')
+        self.ax.plot(indices, reals[sorter], 'r', alpha=0.6, label='R')
+        self.ax.plot(indices, imags[sorter], 'b', alpha=0.6, label='I')
 

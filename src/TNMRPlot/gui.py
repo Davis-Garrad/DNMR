@@ -62,7 +62,10 @@ class MainWindow(QWidget):
 
 app = QApplication(sys.argv)
 main = MainWindow()
+main.setWindowTitle('TNMRPlot')
 main.show()
 
-app.exec()
-        
+try:
+    app.exec()
+except:
+    traceback.print_exc()

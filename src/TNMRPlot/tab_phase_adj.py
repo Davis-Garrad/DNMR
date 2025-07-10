@@ -30,14 +30,57 @@ class TabPhaseAdjustment(Tab):
         self.spinbox_filtersize.setValue(12)
         self.spinbox_filtersize.valueChanged.connect(self.update)
         
+        self.combobox_filtertype = QComboBox()
+        self.combobox_filtertype.addItems(['Sinc','Gaussian','Half-Gaussian','Median','None'])
+        self.combobox_filtertype.currentTextChanged.connect(self.update)
+        
+        self.pushbutton_phaseadjust = QPushButton('Autophase')
+        self.pushbutton_phaseadjust.clicked.connect(self.autophase)
+        
         self.pushbutton_applyall = QPushButton('Apply to all')
         self.pushbutton_applyall.clicked.connect(lambda: self.phase_set(self.phase_adjustment.slider_phase.value()))
 
-        l = QHBoxLayout()
-        l.addWidget(self.phase_adjustment)
-        l.addWidget(self.pushbutton_applyall)
-        l.addWidget(self.spinbox_filtersize)
-        return l
+        l2 = QVBoxLayout()
+        l0 = QHBoxLayout()
+        l0.addWidget(self.phase_adjustment)
+        l3 = QVBoxLayout()
+        l3.addWidget(self.pushbutton_phaseadjust)
+        l3.addWidget(self.pushbutton_applyall)
+        l0.addLayout(l3)
+        l1 = QHBoxLayout()
+        l1.addWidget(self.combobox_filtertype)
+        l1.addWidget(self.spinbox_filtersize)
+        l2.addLayout(l0)
+        l2.addLayout(l1)
+        return l2
+
+    def autophase(self):
+        if(self.data[0].shape[0] == 0):
+            return
+        
+        # find peak, current phase at peak
+        index = self.fileselector.spinbox_index.value()
+        times = self.data[0][index]
+        complexes = self.data[1][index]
+        mags = np.abs(complexes)
+        
+        peak_i = np.argmax(mags)
+        peak_t = times[peak_i]
+        peak_c = complexes[peak_i]
+        angle = np.arctan2(np.imag(peak_c),np.real(peak_c))
+        angle_degrees = angle * 180.0/np.pi
+        
+        current_phases = self.get_global_phaseset() # degrees
+        new_phase_degrees = current_phases[index]-angle_degrees
+        # modulo 180
+        new_phase_degrees += (np.abs(new_phase_degrees - 180.0)//360)*360.0
+        new_phase_degrees -= (np.abs(new_phase_degrees + 180.0)//360)*360.0
+        
+        # now do the setting phase to zero.
+        self.fileselector.data['phases'] = [ new_phase_degrees for i in range(len(self.fileselector.data['phases'])) ]
+        self.pivot_location = peak_t
+        
+        self.update()
 
     def get_global_phaseset(self):
         if('phases' in self.fileselector.data.keys()):
@@ -73,15 +116,26 @@ class TabPhaseAdjustment(Tab):
         times = times[:,:reals.shape[1]]
         
         ps = self.get_global_phaseset()
-        self.phase_adjustment.slider_phase.setValue(ps[index])
+        self.phase_adjustment.slider_phase.setValue(int(ps[index]))
 
         complexes = reals + 1j*imags
         
         for i in range(complexes.shape[0]):
-            kernel = np.exp(-1/2 * np.square(np.linspace(-3, 3, self.spinbox_filtersize.value()*2+1)))
+            t = self.combobox_filtertype.currentText()
+            if(t == 'Gaussian'):
+                kernel = np.exp(-1/2 * np.square(np.linspace(-3, 3, self.spinbox_filtersize.value()*2+1)))
+            elif(t == 'Sinc'):
+                kernel = np.sinc(np.linspace(-reals.shape[1]/(2*self.spinbox_filtersize.value() + 1), reals.shape[1]/(2*self.spinbox_filtersize.value() + 1), reals.shape[1]))
+            elif(t == 'Half-Gaussian'):
+                i_s = np.linspace(-3, 3, self.spinbox_filtersize.value()*2+1)
+                kernel = np.where(i_s >= 0, np.exp(-1/2 * np.square(i_s)), 0)
+            elif(t == 'None'):
+                kernel = 1
+            elif(t == 'Median'):
+                complexes[i] = sp.ndimage.median_filter(reals[i], mode='wrap', size=self.spinbox_filtersize.value()) + 1j * sp.ndimage.median_filter(imags[i], mode='wrap', size=self.spinbox_filtersize.value())
+                continue
             kernel /= np.sum(kernel)
             complexes[i] = np.convolve(complexes[i], kernel, mode='same')
-        #    complexes[i] = sp.ndimage.median_filter(reals[i], mode='wrap', size=25) + 1j * sp.ndimage.median_filter(imags[i], mode='wrap', size=25)
 
         phases = np.exp(1j*np.array(ps)* np.pi/180.0)
         complexes *= phases[:,None]
