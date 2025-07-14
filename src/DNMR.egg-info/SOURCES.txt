@@ -11,11 +11,11 @@ src/DNMR/tab_inv_laplace.py
 src/DNMR/tab_peak_amplitude.py
 src/DNMR/tab_phase_adj.py
 src/DNMR/tab_t1_fitting.py
+src/DNMR.egg-info/PKG-INFO
+src/DNMR.egg-info/SOURCES.txt
+src/DNMR.egg-info/dependency_links.txt
+src/DNMR.egg-info/top_level.txt
 src/DNMR/fileops_loaders/__init__.py
 src/DNMR/fileops_loaders/alpha.py
 src/DNMR/fileops_loaders/data_struct.py
 src/DNMR/fileops_loaders/v100.py
-src/TNMRPlot.egg-info/PKG-INFO
-src/TNMRPlot.egg-info/SOURCES.txt
-src/TNMRPlot.egg-info/dependency_links.txt
-src/TNMRPlot.egg-info/top_level.txt

@@ -50,8 +50,12 @@ class TabT1Fit(Tab):
             self.output_frames[name] = [ frm ]
             for i in range(len(args)//2):
                 w = QLabel('fitting...')
-                lo.addWidget(w)
-                self.output_frames[name] += [ {'widget': w, 'label': args[2*i], 'units': args[2*i+1] } ]
+                fix = QCheckBox('Fix?')
+                li = QHBoxLayout()
+                li.addWidget(fix)
+                li.addWidget(w)
+                lo.addLayout(li)
+                self.output_frames[name] += [ {'widget': w, 'label': args[2*i], 'units': args[2*i+1], 'fixed_widget': fix } ]
                 
             frm.setLayout(lo)
             l.addWidget(frm)
@@ -101,7 +105,12 @@ class TabT1Fit(Tab):
         self.data = (del_times, integrations, uncertainties)
 
         if(self.plot_data[0].shape[0] > 0):
-            self.ax.plot(self.plot_data[0], self.plot_data[1], label='fit')
+            params_list = ''
+            out_frame = self.output_frames[self.combobox_fittingroutine.currentText()]
+            for i in out_frame[1:]:
+                params_list += f'{i['widget'].text()}\n'
+            params_list = params_list[:-1]
+            self.ax.plot(self.plot_data[0], self.plot_data[1], label=params_list)
         
     def fit(self):
         bounds = None
@@ -140,6 +149,13 @@ class TabT1Fit(Tab):
                 d1 = self.data[1] / np.max(self.data[1])
                 d2 = self.data[2] / np.max(self.data[1])
                 self.data = (d0, d1, d2)
+            
+        if(self.x0 is not None):
+            for i in range(len(self.x0)):
+                for bi in range(len(bounds)):
+                    if(out_frame[i+1]['fixed_widget'].isChecked()):
+                        # Fix
+                        bounds[bi] = sp.optimize.Bounds(self.x0[bi], self.x0[bi])
             
         # global minimum
         res = sp.optimize.differential_evolution(lambda x: cost_func(x, 
