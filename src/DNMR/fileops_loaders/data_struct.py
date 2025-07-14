@@ -66,6 +66,8 @@ class data_struct():
                         val = np.array([val])
                     if(setval.ndim == 0):
                         setval = np.array([setval])
+                    while(val.ndim < setval.ndim):
+                        val = val[None,:]
                     self.data[key] = np.append(val, setval, axis=0) # if numpy
                 except:
                     traceback.print_exc()

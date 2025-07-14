@@ -1,8 +1,8 @@
 LICENSE
 pyproject.toml
 src/DNMR/__init__.py
+src/DNMR/__main__.py
 src/DNMR/fileops.py
-src/DNMR/gui.py
 src/DNMR/miniwidgets.py
 src/DNMR/tab.py
 src/DNMR/tab_field_scan.py

@@ -31,6 +31,9 @@ class MainWindow(QWidget):
         data_widgets = {}
         self.fileselector = FileSelectionWidget()
         data_widgets['fileselector'] = self.fileselector
+        if(len(sys.argv) > 1): # passed arguments are files to load
+            self.fileselector.load_files(sys.argv[1:])
+        
         self.pushbutton_process = QPushButton('Reload')
         self.pushbutton_process.clicked.connect(self.update_all)
         
@@ -62,7 +65,7 @@ class MainWindow(QWidget):
 
 app = QApplication(sys.argv)
 main = MainWindow()
-main.setWindowTitle('TNMRPlot')
+main.setWindowTitle('DNMR')
 main.show()
 
 try:

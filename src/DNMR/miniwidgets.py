@@ -112,9 +112,8 @@ class FileSelectionWidget(QWidget):
         for i in self.callbacks:
             i()
 
-    def open_file(self):
+    def load_files(self, fns):
         try:
-            fns = self.filedialog.getOpenFileNames()[0]
             big_data = fileops.get_data(fns[0])
             if(len(fns) > 1):
                 for fn in fns[1:]:
@@ -127,8 +126,15 @@ class FileSelectionWidget(QWidget):
             self.spinbox_index.setRange(0, self.data['size']-1)
             self.spinbox_index.setValue(0)
             self.callback()
+        except:
+            traceback.print_exc()
+
+    def open_file(self):
+        try:
+            fns = self.filedialog.getOpenFileNames()[0]
         except Exception as e:
             traceback.print_exc()
+        self.load_files(fns)
             
     def file_info(self):
         if(len(list(self.data.keys())) != 0):

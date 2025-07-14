@@ -44,7 +44,7 @@ class TabFieldScan(Tab):
             
             self.ax.set_xlabel('field (T)')
             
-            pvt = self.data_widgets['tab_phase'].pivot_location
+            pvt = self.fileselector.data['peak_locations'][index]
             max_index = np.argmin(np.abs(times[0] - pvt))
             r = reals[:,max_index]
             i = imags[:,max_index]

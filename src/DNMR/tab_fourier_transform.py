@@ -40,10 +40,13 @@ class TabFourierTransform(Tab):
         complexes = self.data_widgets['tab_phase'].data[1]
 
         timespacing = (times[index][1]-times[index][0])
-
-        time_index = np.argmin(np.abs(self.data_widgets['tab_phase'].pivot_location - times))
-        s_complexes = np.roll(complexes, -time_index, axis=1)
-        s_times = np.roll(times, -time_index, axis=1)
+    
+        time_index = np.argmin(np.abs(self.fileselector.data['peak_locations'][:,None] - times), axis=1)
+        s_complexes = np.zeros_like(complexes)
+        s_times = np.zeros_like(times)
+        for i in range(s_complexes.shape[0]):
+            s_complexes[i,:] = np.roll(complexes[i,:], -time_index[i])
+            s_times[i,:]     = np.roll(times[i,:],     -time_index[i])
         s_reals = np.real(s_complexes)
         s_imags = np.imag(s_complexes)
 

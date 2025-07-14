@@ -18,7 +18,6 @@ class TabPhaseAdjustment(Tab):
         super(TabPhaseAdjustment, self).__init__(data_widgets, 'tab_phase', parent)
         
         self.data = (np.array([]), np.array([]))
-        self.pivot_location = 0
 
     def generate_layout(self):
         self.phase_adjustment = PhaseAdjustmentWidget(callback=self.update_phase)
@@ -78,7 +77,8 @@ class TabPhaseAdjustment(Tab):
         
         # now do the setting phase to zero.
         self.fileselector.data['phases'] = [ new_phase_degrees for i in range(len(self.fileselector.data['phases'])) ]
-        self.pivot_location = peak_t
+        self.get_global_peaklocs()
+        self.fileselector.data['peak_locations'] = np.ones_like(self.get_global_peaklocs()) * peak_t
         
         self.update()
 
@@ -88,6 +88,14 @@ class TabPhaseAdjustment(Tab):
         else:
             self.fileselector.data['phases'] = [0 for i in range(self.fileselector.data['size'])]
             ps = self.fileselector.data['phases']
+        return ps
+
+    def get_global_peaklocs(self):
+        if('peak_locations' in self.fileselector.data.keys()):
+            ps = self.fileselector.data['peak_locations']
+        else:
+            self.fileselector.data['peak_locations'] = np.array([0 for i in range(self.fileselector.data['size'])])
+            ps = self.fileselector.data['peak_locations']
         return ps
     
     def phase_set(self, p):
@@ -103,9 +111,15 @@ class TabPhaseAdjustment(Tab):
         self.update()
 
     def process_button(self, event):
+        peak_locs = self.get_global_peaklocs() # Make sure it exists.
         if(event.button == 1):
             if not(event.xdata is None):
-                self.pivot_location = event.xdata
+                self.fileselector.data['peak_locations'] = np.ones_like(self.get_global_peaklocs()) * event.xdata
+            self.update()
+        elif(event.button == 3): # why set two or three indices, when you could set **just one**?
+            index = self.fileselector.spinbox_index.value()
+            if not(event.xdata is None):
+                self.fileselector.data['peak_locations'][index] = event.xdata
             self.update()
 
     def plot_logic(self):
@@ -142,7 +156,8 @@ class TabPhaseAdjustment(Tab):
 
         #complexes -= np.average(complexes, axis=1)[:,None]
 
-        self.ax.axvline(self.pivot_location, color='k', linestyle='--', alpha=0.5)
+        peak_loc = self.get_global_peaklocs()[index]
+        self.ax.axvline(peak_loc, color='k', linestyle='--', alpha=0.5)
 
         total = np.sum(np.square(np.abs(complexes[index]))) * (times[index][1] - times[index][0])
 

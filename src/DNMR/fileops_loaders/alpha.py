@@ -4,7 +4,7 @@ import pytnt as tnt
 import traceback
 import re
 
-from TNMRPlot.fileops_loaders.data_struct import data_struct, hdf_to_dict
+from DNMR.fileops_loaders.data_struct import data_struct, hdf_to_dict
 
 def read_hdf_valpha(file):
     toplevel = file.keys()
