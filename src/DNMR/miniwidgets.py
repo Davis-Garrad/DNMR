@@ -4,7 +4,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import *
 import numpy as np
 
-import TNMRPlot.fileops as fileops
+import DNMR.fileops as fileops
 
 class PhaseAdjustmentWidget(QWidget):
     def __init__(self, parent=None, callback=lambda: None):

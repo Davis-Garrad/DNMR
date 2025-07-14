@@ -7,9 +7,9 @@ import pytnt as tnt
 import traceback
 import re
 
-from TNMRPlot.fileops_loaders.data_struct import *
-from TNMRPlot.fileops_loaders.alpha import *
-from TNMRPlot.fileops_loaders.v100 import *
+from DNMR.fileops_loaders.data_struct import *
+from DNMR.fileops_loaders.alpha import *
+from DNMR.fileops_loaders.v100 import *
 
 def get_tnt_data(fn: str):
     '''Retrieves the same data as the below function, but from a .tnt file'''

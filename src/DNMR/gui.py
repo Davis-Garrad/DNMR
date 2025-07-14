@@ -13,15 +13,15 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as Navigation
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import *
 
-import TNMRPlot.fileops as fileops
-from TNMRPlot.miniwidgets import *
+import DNMR.fileops as fileops
+from DNMR.miniwidgets import *
 
-from TNMRPlot.tab_phase_adj import *
-from TNMRPlot.tab_fourier_transform import *
-from TNMRPlot.tab_t1_fitting import *
-from TNMRPlot.tab_field_scan import *
-from TNMRPlot.tab_peak_amplitude import *
-from TNMRPlot.tab_inv_laplace import *
+from DNMR.tab_phase_adj import *
+from DNMR.tab_fourier_transform import *
+from DNMR.tab_t1_fitting import *
+from DNMR.tab_field_scan import *
+from DNMR.tab_peak_amplitude import *
+from DNMR.tab_inv_laplace import *
 
 class MainWindow(QWidget):
     def __init__(self, parent=None):

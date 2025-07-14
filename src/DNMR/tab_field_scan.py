@@ -10,8 +10,8 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as Navigation
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import *
 
-from TNMRPlot.miniwidgets import *
-from TNMRPlot.tab import Tab
+from DNMR.miniwidgets import *
+from DNMR.tab import Tab
 
 class TabFieldScan(Tab):
     def __init__(self, data_widgets, parent=None):

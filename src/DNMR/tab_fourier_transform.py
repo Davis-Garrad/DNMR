@@ -9,7 +9,7 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as Navigation
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import *
 
-from TNMRPlot.tab import *
+from DNMR.tab import *
 
 class TabFourierTransform(Tab):
     def __init__(self, data_widgets, parent=None):

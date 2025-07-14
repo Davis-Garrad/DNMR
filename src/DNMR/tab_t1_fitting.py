@@ -10,10 +10,10 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as Navigation
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import *
 
-import TNMRPlot.fileops as fileops
-from TNMRPlot.miniwidgets import *
+import DNMR.fileops as fileops
+from DNMR.miniwidgets import *
 
-from TNMRPlot.tab import Tab
+from DNMR.tab import Tab
 
 class TabT1Fit(Tab):
     output_frames = {}
