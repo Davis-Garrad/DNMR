@@ -86,8 +86,8 @@ class FileSelectionWidget(QWidget):
         layout.addWidget(self.checkbox_holdplots)
         self.setLayout(layout)
 
-        self.fn = ''
-        self._fn = [''] # for all channels
+        self.fn = []
+        self._fn = [[]] # for all channels
         self.data = {}
         self._data = [{}] # for all channels
         
@@ -99,7 +99,7 @@ class FileSelectionWidget(QWidget):
     
     def channel_callback(self):
         while(len(self._fn) <= self.spinbox_channel.value()):
-            self._fn += ['']
+            self._fn += [[]]
             self._data += [{}]
         self.fn = self._fn[self.spinbox_channel.value()]
         self.data = self._data[self.spinbox_channel.value()]
@@ -119,7 +119,7 @@ class FileSelectionWidget(QWidget):
                 for fn in fns[1:]:
                     data = fileops.get_data(fn)
                     big_data += data
-            self.fn = fns[0] # above lines will throw exceptions if anything bad happens, so if anything bad happens, we want to preserve the previous file being loaded
+            self.fn = fns # above lines will throw exceptions if anything bad happens, so if anything bad happens, we want to preserve the previous file being loaded
             self.data = big_data
             self._fn[self.spinbox_channel.value()] = self.fn
             self._data[self.spinbox_channel.value()] = self.data
@@ -140,6 +140,8 @@ class FileSelectionWidget(QWidget):
         if(len(list(self.data.keys())) != 0):
             self.infodialogs += [FileInfoWidget()] # must be stored somewhere, or python garbage collection will clean it up and close the window
             self.infodialogs[-1].update_items(self.data)
-            self.infodialogs[-1].setWindowTitle(f'Info on {self._fn[self.spinbox_channel.value()]}')
+            current_fns = self.fn
+            filename_str = f'Info on file {current_fns[0]}' if len(current_fns) == 1 else f'Info on files {current_fns}'
+            self.infodialogs[-1].setWindowTitle(filename_str)
             self.infodialogs[-1].show()
     

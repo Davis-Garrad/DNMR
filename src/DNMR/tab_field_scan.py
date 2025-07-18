@@ -16,6 +16,8 @@ from DNMR.tab import Tab
 class TabFieldScan(Tab):
     def __init__(self, data_widgets, parent=None):
         super(TabFieldScan, self).__init__(data_widgets, 'tab_fieldscan', parent)
+        
+        self.data = ([], [])
 
     def plot_logic(self):
         if('ppms_mf' in self.fileselector.data.keys() or 'ppms_field' in self.fileselector.data.keys()):
@@ -52,4 +54,15 @@ class TabFieldScan(Tab):
             self.ax.plot(fields, M, linestyle='None', marker='x', color='k', label='Mag. (peak)')
             #self.ax.plot(fields, r, linestyle='None', marker='x', color='r', label='R (peak)')
             #self.ax.plot(fields, i, linestyle='None', marker='x', color='b', label='I (peak)')
+            
+            self.data[0] = fields
+            self.data[1] = M
 
+
+    def get_exported_data(self):
+        index = self.fileselector.spinbox_index.value()
+        return { 'times': self.data_widgets['tab_phase'].data[0][index],
+                 'complexes': self.data_widgets['tab_phase'].data[1][index],
+                 'fields': self.data[0],
+                 'magnitudes': self.data[1],
+               }

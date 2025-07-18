@@ -7,6 +7,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import *
 
 import traceback
+import pandas as pd
 
 class Tab(QWidget):
     def __init__(self, data_widgets, name, parent=None):
@@ -46,6 +47,11 @@ class Tab(QWidget):
     def plot_logic(self):
         print(f'UNIMPLEMENTED PLOT_LOGIC ({self._name})')
         pass
+
+    def get_exported_data(self):
+        '''Returns a dictionary of data to write to a CSV. Keys are columns.'''
+        print(f'UNIMPLEMENTED GET_EXPORTED_DATA ({self._name})')
+        return {}
 
     def plot(self):
         if(self.fileselector.fn == ''):

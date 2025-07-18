@@ -19,6 +19,7 @@ class TabPeakAmplitude(Tab):
         super(TabPeakAmplitude, self).__init__(data_widgets, 'tab_peakamp', parent)
         
         self.fileselector.callbacks += [ self.retrieve_labels ]
+        self.data = ([], [])
         
     def generate_layout(self):
         self.combobox_labelling = QComboBox()
@@ -114,4 +115,13 @@ class TabPeakAmplitude(Tab):
         self.ax.plot(indices, mags[sorter], 'k', alpha=0.6, label=f'Mag.')
         self.ax.plot(indices, reals[sorter], 'r', alpha=0.6, label='R')
         self.ax.plot(indices, imags[sorter], 'b', alpha=0.6, label='I')
+        
+        self.data = (indices, integrals)
 
+    def get_exported_data(self):
+        index = self.fileselector.spinbox_index.value()
+        return { 'frequencies (MHz)': self.data_widgets['tab_ft'].data[0][index],
+                 'fft': self.data_widgets['tab_ft'].data[1][index],
+                 self.combobox_labelling.currentText(): self.data[0],
+                 'integrals': self.data[1],
+               }

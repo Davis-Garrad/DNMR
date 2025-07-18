@@ -37,6 +37,10 @@ class MainWindow(QWidget):
         self.pushbutton_process = QPushButton('Reload')
         self.pushbutton_process.clicked.connect(self.update_all)
         
+        self.filedialog_export = QFileDialog()
+        self.button_export = QPushButton('Export Data (CSV)')
+        self.button_export.clicked.connect(self.export_selected)
+        
         self.tab_phaseadj = TabPhaseAdjustment(data_widgets, self)
         self.tab_ft = TabFourierTransform(data_widgets, self)
         self.tab_t1 = TabT1Fit(data_widgets, self)
@@ -55,20 +59,34 @@ class MainWindow(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.fileselector)
         layout.addWidget(self.tabwidget_tabs)
-        layout.addWidget(self.pushbutton_process)
+        layouth = QHBoxLayout()
+        layouth.addWidget(self.pushbutton_process)
+        layouth.addWidget(self.button_export)
+        layout.addLayout(layouth)
         self.setLayout(layout)
+
+    def export_selected(self):
+        fn = self.filedialog_export.getSaveFileName()[0]
+        saved_dict = self.tabwidget_tabs.currentWidget().get_exported_data()
+        print(saved_dict)
+        df = pd.DataFrame(dict([ (k, pd.Series(v)) for k,v in saved_dict.items() ]))
+        df.to_csv(path_or_buf=fn)
+        print('Exporting dataframe:')
+        print(df)
 
     def update_all(self):
         ct = self.tabwidget_tabs.count()
         for i in range(ct):
             self.tabwidget_tabs.widget(i).update()
 
-app = QApplication(sys.argv)
-main = MainWindow()
-main.setWindowTitle('DNMR')
-main.show()
+if __name__=='__main__':
+    print('Starting QT. Please wait...')
+    app = QApplication(sys.argv)
+    main = MainWindow()
+    main.setWindowTitle('DNMR')
+    main.show()
 
-try:
-    app.exec()
-except:
-    traceback.print_exc()
+    try:
+        app.exec()
+    except:
+        traceback.print_exc()

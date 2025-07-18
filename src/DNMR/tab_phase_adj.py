@@ -175,3 +175,10 @@ class TabPhaseAdjustment(Tab):
         self.ax.axhline(0, color='k', linestyle='-')
 
         self.data = (times[:][:reals[index].shape[0]], complexes)
+        
+    def get_exported_data(self):
+        index = self.fileselector.spinbox_index.value()
+        d = { 'times': self.data[0][index],
+                 'complexes': self.data[1][index],
+                }
+        return d

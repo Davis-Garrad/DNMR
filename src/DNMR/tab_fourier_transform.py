@@ -65,3 +65,11 @@ class TabFourierTransform(Tab):
 
         self.ax.axvline(self.left_pivot, color='k')
         self.ax.axvline(self.right_pivot, color='k')
+
+    def get_exported_data(self):
+        index = self.fileselector.spinbox_index.value()
+        return { 'times': self.data_widgets['tab_phase'].data[0][index],
+                 'complexes': self.data_widgets['tab_phase'].data[1][index],
+                 'frequencies (MHz)': self.data[0],
+                 'fft': self.data[1][index],
+               }

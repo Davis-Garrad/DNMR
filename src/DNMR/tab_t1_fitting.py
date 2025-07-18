@@ -61,7 +61,7 @@ class TabT1Fit(Tab):
             l.addWidget(frm)
 
         # Title, var_name, var_units, var_name, var_units, ...
-        add_fit_frame('7/2 Spin', 'y0', '', 's', '', 'T1', '\u03bcs', 'r', '')
+        add_fit_frame('7/2 Spin', '\u03b30', '', 's', '', 'T1', '\u03bcs', 'r', '')
 
         return l
 
@@ -191,3 +191,23 @@ class TabT1Fit(Tab):
         except Exception as e:
             traceback.print_exc()
         self.update()
+        
+    def get_exported_data(self):
+        out_frame = self.output_frames[self.combobox_fittingroutine.currentText()][1:]
+        params_dict = {}
+        if(self.x0 is not None):
+            cnt = 0
+            for i in out_frame:
+                params_dict[i['label']] = [ str(self.x0[cnt]) + ' ' + i['units'] ]
+                params_dict[i['label']+' error'] = [ str(self.sigmas[cnt]) + ' ' + i['units'] ]
+                cnt += 1
+        
+        index = self.fileselector.spinbox_index.value()
+        pd = {
+                 'frequencies (MHz)': self.data_widgets['tab_ft'].data[0],
+                 'fft': self.data_widgets['tab_ft'].data[1][index],
+                 'delays': self.data[0],
+                 'integrals': self.data[1],
+                }
+        pd.update(params_dict)
+        return pd
