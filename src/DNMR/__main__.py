@@ -79,7 +79,7 @@ class MainWindow(QWidget):
         for i in range(ct):
             self.tabwidget_tabs.widget(i).update()
 
-if __name__=='__main__':
+def start_app():
     print('Starting QT. Please wait...')
     app = QApplication(sys.argv)
     main = MainWindow()
@@ -89,4 +89,7 @@ if __name__=='__main__':
     try:
         app.exec()
     except:
-        traceback.print_exc()
+        traceback.print_exc
+        
+if __name__=='__main__':
+    start_app()
