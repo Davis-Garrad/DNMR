@@ -18,7 +18,8 @@ dependencies = [
     "numpy<=2.3.0", 
     "matplotlib", 
     "PyQt6", 
-    "pandas"
+    "pandas",
+    "pytnt"
 ]
 license="GPL-3.0-only"
 license-files=["LICENSE",]

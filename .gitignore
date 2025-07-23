@@ -1,4 +1,6 @@
 __pycache__/
 deprecated/
-src/TNMRPlot/__pycache__/
+src/DNMR/__pycache__/
 *.pyc
+dist/
+src/DNMR.egg-info/
