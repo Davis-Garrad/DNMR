@@ -1,6 +1,5 @@
-__pycache__/
 deprecated/
-src/DNMR/__pycache__/
+**/__pycache__
 *.pyc
 dist/
-src/DNMR.egg-info/
+**/DNMR.egg-info
