@@ -3,7 +3,6 @@ import re
 
 import numpy as np
 import h5py as hdf
-import pytnt as tnt
 import traceback
 import re
 
@@ -12,6 +11,7 @@ from DNMR.fileops_loaders.alpha import *
 from DNMR.fileops_loaders.v100 import *
 
 def get_tnt_data(fn: str):
+    import pytnt as tnt  # Requires numpy.dual fix.
     '''Retrieves the same data as the below function, but from a .tnt file'''
     f = tnt.TNTfile(fn)
     print('WARNING: TNT file loading is not without it\'s concerns. If you don\'t know what you\'re doing, don\'t do this!')
