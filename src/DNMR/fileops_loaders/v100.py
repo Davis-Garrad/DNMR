@@ -32,16 +32,14 @@ def read_hdf_v100(file):
     # load the first one, to get sizes etc.
     for ikey, ival in file[points[0]].items():
         if(isinstance(ival, hdf.Dataset)):
-            print('dataset', ikey)
             if(ikey[:5] == 'tnmr_'):
                 ikey = ikey[5:]
-            data[ikey] = [ None ] * len(points)
+            data[ikey] = [ [0] ] * len(points)
         elif(isinstance(ival, hdf.Group)):
-            print('group', ikey)
             for key, val in ival.items():
                 if(key[:5] == 'tnmr_'):
                     key = key[5:]
-                data[key] = [ None ] * len(points)
+                data[key] = [ [0] ] * len(points)
         
     data['size'] = len(points)
 
@@ -51,6 +49,15 @@ def read_hdf_v100(file):
             if(isinstance(ival, hdf.Dataset)):
                 if(ikey[:5] == 'tnmr_'):
                     ikey = ikey[5:]
+                if(ival.ndim == 0):
+                    print(ival.dtype)
+                    print(type(str(ival.dtype)))
+                    print(isinstance(ival.dtype, np.dtypes.BytesDType))
+                    if(isinstance(ival.dtype, np.dtypes.BytesDType)):
+                        conv = np.array(ival, 'S').tobytes().decode('utf-8')
+                        ival = [conv]
+                    else:
+                        ival = [ival]
                 data[ikey][index] = ival
             elif(isinstance(ival, hdf.Group)):
                 for key, val in ival.items():
@@ -61,6 +68,10 @@ def read_hdf_v100(file):
                         print(key, hdf_to_dict(val))
                     except:
                         pass
+                        
+    print('#' * 100)
+    print(data)
+    print('#'*100)
         
     for key, val in data.items():
         # check if we can turn it into a dict, then numpy array
@@ -83,8 +94,8 @@ def read_hdf_v100(file):
                     pass
                 data[key] = arr
             except:
-                print(val)
-                conv = str(val)
-                print(conv)
-                pass
+                pass   
+    print('#' * 100)
+    print(data)
+    print('#'*100)
     return data

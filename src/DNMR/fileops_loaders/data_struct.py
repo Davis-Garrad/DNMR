@@ -69,18 +69,17 @@ class data_struct():
                         val = val[None,:]
                     self.data[key] = np.append(val, setval, axis=0) # if numpy
                 except:
-                    traceback.print_exc()
+                    print(key, r[key])
                     self.data[key] += r[key] # they're lists if not.
         return self
         
     def __repr__(self):
-        s = 'DATA_STRUCT\n'
+        s = '(DATA_STRUCT) {\n'
         for key, val in self.data.items():
             if(isinstance(val, data_struct)):
-                s += f'{key}: '+'{\n'
-                s += '\t' + '\n\t'.join(val.__repr__().split('\n'))
-                s += '\n}\n'
+                s += f'\t{key}: '
+                s += '\n\t'.join(val.__repr__().split('\n')) + '\n'
             else:
-                s += f'{key}: {val.__repr__()}\n'
-        s += 'END DATA_STRUCT'
+                s += f'\t{key}: {val.__repr__()}\n'
+        s += '}\n'
         return s
