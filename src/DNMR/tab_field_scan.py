@@ -43,7 +43,8 @@ class TabFieldScan(Tab):
                         fields = self.fileselector.data.ppms_mf
                     except:
                         return
-            self.ax.plot(fields, np.abs(real_integral + 1j*imag_integral), 'k', alpha=0.6, label=f'Mag. \u222b', linestyle='None', marker='o')
+                        
+            #self.ax.plot(fields, np.abs(real_integral + 1j*imag_integral), 'k', alpha=0.6, label=f'Mag. \u222b', linestyle='None', marker='o')
             #self.ax.plot(fields, real_integral, 'r', alpha=0.6, label='R \u222b', linestyle='None', marker='o')
             #self.ax.plot(fields, imag_integral, 'b', alpha=0.6, label='I \u222b', linestyle='None', marker='o')
             

@@ -111,16 +111,18 @@ class TabPhaseAdjustment(Tab):
         self.update()
 
     def process_button(self, event):
-        peak_locs = self.get_global_peaklocs() # Make sure it exists.
-        if(event.button == 1):
-            if not(event.xdata is None):
-                self.fileselector.data['peak_locations'] = np.ones_like(self.get_global_peaklocs()) * event.xdata
-            self.update()
-        elif(event.button == 3): # why set two or three indices, when you could set **just one**?
-            index = self.fileselector.spinbox_index.value()
-            if not(event.xdata is None):
-                self.fileselector.data['peak_locations'][index] = event.xdata
-            self.update()
+        nav_state = self.ax.get_navigate_mode()
+        if(nav_state is None):
+            peak_locs = self.get_global_peaklocs() # Make sure it exists.
+            if(event.button == 1):
+                if not(event.xdata is None):
+                    self.fileselector.data['peak_locations'] = np.ones_like(self.get_global_peaklocs()) * event.xdata
+                self.update()
+            elif(event.button == 3): # why set two or three indices, when you could set **just one**?
+                index = self.fileselector.spinbox_index.value()
+                if not(event.xdata is None):
+                    self.fileselector.data['peak_locations'][index] = event.xdata
+                self.update()
 
     def plot_logic(self):
         index = self.fileselector.spinbox_index.value()

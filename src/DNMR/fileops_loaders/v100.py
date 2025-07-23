@@ -31,24 +31,36 @@ def read_hdf_v100(file):
     g_keys = ['nmr_data', 'detectors', 'environment']
     # load the first one, to get sizes etc.
     for ikey, ival in file[points[0]].items():
-        for key, val in ival.items():
-            print(key, val)
-            if(key[:5] == 'tnmr_'):
-                key = key[5:]
-            data[key] = [ None ] * len(points)
+        if(isinstance(ival, hdf.Dataset)):
+            print('dataset', ikey)
+            if(ikey[:5] == 'tnmr_'):
+                ikey = ikey[5:]
+            data[ikey] = [ None ] * len(points)
+        elif(isinstance(ival, hdf.Group)):
+            print('group', ikey)
+            for key, val in ival.items():
+                if(key[:5] == 'tnmr_'):
+                    key = key[5:]
+                data[key] = [ None ] * len(points)
         
     data['size'] = len(points)
 
     for i, index in zip(points, point_indices):
+        print(i)
         for ikey, ival in file[i].items():
-            for key, val in ival.items():
-                if(key[:5] == 'tnmr_'):
-                    key = key[5:]
-                data[key][index] = val
-                try:
-                    print(key, hdf_to_dict(val))
-                except:
-                    pass
+            if(isinstance(ival, hdf.Dataset)):
+                if(ikey[:5] == 'tnmr_'):
+                    ikey = ikey[5:]
+                data[ikey][index] = ival
+            elif(isinstance(ival, hdf.Group)):
+                for key, val in ival.items():
+                    if(key[:5] == 'tnmr_'):
+                        key = key[5:]
+                    data[key][index] = val
+                    try:
+                        print(key, hdf_to_dict(val))
+                    except:
+                        pass
         
     for key, val in data.items():
         # check if we can turn it into a dict, then numpy array
@@ -71,5 +83,8 @@ def read_hdf_v100(file):
                     pass
                 data[key] = arr
             except:
+                print(val)
+                conv = str(val)
+                print(conv)
                 pass
     return data
