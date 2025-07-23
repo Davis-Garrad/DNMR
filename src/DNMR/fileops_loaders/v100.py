@@ -1,6 +1,5 @@
 import numpy as np
 import h5py as hdf
-import pytnt as tnt
 import traceback
 import re
 
