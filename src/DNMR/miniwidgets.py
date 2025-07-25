@@ -50,7 +50,42 @@ class FileInfoWidget(QWidget):
             else:
                 self.listview_docinfo.addItem(f'{prefix+i}={d[i]}')
                 
-                    
+class QuickInfoWidget(QWidget):
+    def __init__(self, parent=None):
+        super(QuickInfoWidget, self).__init__(parent)
+        
+        self.listview_envinfo = QListWidget()
+        
+        layout = QVBoxLayout()
+        layout.addWidget(self.listview_envinfo)
+        self.setLayout(layout)
+        
+    def update_items(self, d, index):
+        self.listview_envinfo.clear()
+        if('size' in d.keys()):
+            self._update_items(d, index)
+        
+    def _update_items(self, d, index, length=None, prefix=''):
+        '''Takes a data_struct. Updates with all keys starting with environment_'''
+        if(length is None):
+            length = d['size']
+        for i in list(d.keys()):
+            if(i[:len('environment_')] != 'environment_'):
+                continue
+            name = prefix+str(i[len('environment_'):])
+            if(isinstance(d[i], fileops.data_struct)):
+                self._update_items(d[i], index, length=length, prefix=name+'/')
+            elif(isinstance(d[i], np.ndarray)):
+                if(d[i].ndim == 1):
+                    s = str(d[i][index])
+                    self.listview_envinfo.addItem(f'{name}='+s)
+                elif(d[i].ndim == 2):
+                    # first index is scan index, second is datapoint
+                    s = str(d[i][index])
+                    self.listview_envinfo.addItem(f'{name}='+s)
+            else:
+                self.listview_envinfo.addItem(f'{name}={d[i]}')
+        
 
 class FileSelectionWidget(QWidget):
     def __init__(self, parent=None):
@@ -61,11 +96,12 @@ class FileSelectionWidget(QWidget):
         self.button_load.clicked.connect(self.open_file)
         self.button_info = QPushButton('Info')
         self.button_info.clicked.connect(self.file_info)
-        self.label_index = QLabel('Index:')
-        self.spinbox_index = QSpinBox()
         self.label_channel = QLabel('Channel:')
         self.spinbox_channel = QSpinBox()
+        self.label_index = QLabel('Index:')
+        self.spinbox_index = QSpinBox()
         self.checkbox_holdplots = QCheckBox('Hold plots')
+        self.quickinfo_envinronment = QuickInfoWidget()
 
         layout = QHBoxLayout()
         l0 = QVBoxLayout()
@@ -79,11 +115,13 @@ class FileSelectionWidget(QWidget):
         l2.addWidget(self.label_channel)
         l2.addWidget(self.spinbox_channel)
         l_m = QVBoxLayout()
-        l_m.addLayout(l)
         l_m.addLayout(l2)
+        l_m.addLayout(l)
+        l_m.addWidget(self.checkbox_holdplots)
         layout.addLayout(l_m)
-        #layout.addWidget(self.spinbox_index)
-        layout.addWidget(self.checkbox_holdplots)
+        self.quickinfo_envinronment.setSizePolicy(QSizePolicy.Policy.Maximum,QSizePolicy.Policy.Maximum)
+        layout.addWidget(self.quickinfo_envinronment)
+        
         self.setLayout(layout)
 
         self.fn = []
@@ -93,7 +131,7 @@ class FileSelectionWidget(QWidget):
         
         self.infodialogs = []
 
-        self.callbacks = []
+        self.callbacks = [ lambda: self.quickinfo_envinronment.update_items(self.data, self.spinbox_index.value()) ]
         self.spinbox_index.valueChanged.connect(self.callback)
         self.spinbox_channel.valueChanged.connect(self.channel_callback)
     
@@ -103,10 +141,10 @@ class FileSelectionWidget(QWidget):
             self._data += [{}]
         self.fn = self._fn[self.spinbox_channel.value()]
         self.data = self._data[self.spinbox_channel.value()]
-        if(self.fn != ''):
+        if(len(self.fn) > 0):
             self.spinbox_index.setRange(0, self.data['size']-1)
         self.spinbox_index.setValue(0)
-        #self.callback()
+        self.callback()
     
     def callback(self):
         for i in self.callbacks:

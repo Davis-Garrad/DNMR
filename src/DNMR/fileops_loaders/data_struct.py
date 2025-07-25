@@ -25,7 +25,7 @@ class data_struct():
     data = None
     
     def __init__(self, init=None):
-        self.data = {}
+        self.data = { 'size': 0 }
         
         if not(init is None):
             for k, v in init.items():
@@ -69,7 +69,6 @@ class data_struct():
                         val = val[None,:]
                     self.data[key] = np.append(val, setval, axis=0) # if numpy
                 except:
-                    print(key, r[key])
                     self.data[key] += r[key] # they're lists if not.
         return self
         

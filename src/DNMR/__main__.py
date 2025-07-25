@@ -57,8 +57,8 @@ class MainWindow(QWidget):
         self.tabwidget_tabs.currentChanged.connect(lambda: self.tabwidget_tabs.currentWidget().update())
 
         layout = QVBoxLayout()
-        layout.addWidget(self.fileselector)
         layout.addWidget(self.tabwidget_tabs)
+        layout.addWidget(self.fileselector)
         layouth = QHBoxLayout()
         layouth.addWidget(self.pushbutton_process)
         layouth.addWidget(self.button_export)

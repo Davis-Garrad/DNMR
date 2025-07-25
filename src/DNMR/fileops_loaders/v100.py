@@ -28,47 +28,66 @@ def read_hdf_v100(file):
     point_numbers = point_numbers[sorted_indices]
     
     data = data_struct()
-    g_keys = ['nmr_data', 'detectors', 'environment']
+    special_group_keys = [ 'detectors', 'environment']
+    
+    def strip_key(k):
+        if(k[:5] == 'tnmr_'):
+            return k[5:]
+        return k
+        
+    def parse_dataset_into_struct(parent_group, key, struct, placement_index, key_to_write=None):
+        '''Takes in an HDF group (parent_group), a _dataset_ value's key, and writes it into the appropriate place in data_struct (struct) at placement_index.'''
+        kstrip = strip_key(key)
+        val = parent_group[key]
+        
+        #handle non-array data.
+        try:
+            if(val.ndim == 0):
+                if(isinstance(val.dtype, np.dtypes.BytesDType)):
+                    conv = np.array(val, 'S').tobytes().decode('utf-8') # for strings. See HDF docs.
+                    val = [conv]
+                else:
+                    val = [val]
+        except: # in the case of dictionaries/further groups.
+            pass
+        
+        struct[(key if key_to_write is None else key_to_write)][placement_index] = val
+    
+    def get_formatted_key(k):
+        ks = k
+        group = ''
+        if('/' in ks):
+            group = ks.split('/')[0]
+            ks = '/'.join(ks.split('/')[1:])
+        ks = strip_key(ks)
+        
+        for i in special_group_keys:
+            if i in group:
+                return i+'_'+ks
+        return ks
+    
     # load the first one, to get sizes etc.
     for ikey, ival in file[points[0]].items():
         if(isinstance(ival, hdf.Dataset)):
-            if(ikey[:5] == 'tnmr_'):
-                ikey = ikey[5:]
-            data[ikey] = [ [0] ] * len(points)
+            kstrip = strip_key(ikey)
+            data[kstrip] = [ [0] ] * len(points)
         elif(isinstance(ival, hdf.Group)):
             for key, val in ival.items():
-                if(key[:5] == 'tnmr_'):
-                    key = key[5:]
-                data[key] = [ [0] ] * len(points)
-        
+                kstrip = strip_key(key)
+                data[get_formatted_key(ikey+'/'+key)] = [ [0] ] * len(points)
+    
     data['size'] = len(points)
-
+    
+    # Grab all data in entries, write it into data struct.
     for i, index in zip(points, point_indices):
-        print(i)
         for ikey, ival in file[i].items():
             if(isinstance(ival, hdf.Dataset)):
-                if(ikey[:5] == 'tnmr_'):
-                    ikey = ikey[5:]
-                if(ival.ndim == 0):
-                    print(ival.dtype)
-                    print(type(str(ival.dtype)))
-                    print(isinstance(ival.dtype, np.dtypes.BytesDType))
-                    if(isinstance(ival.dtype, np.dtypes.BytesDType)):
-                        conv = np.array(ival, 'S').tobytes().decode('utf-8')
-                        ival = [conv]
-                    else:
-                        ival = [ival]
-                data[ikey][index] = ival
+                parse_dataset_into_struct(file[i], ikey, data, index)
             elif(isinstance(ival, hdf.Group)):
                 for key, val in ival.items():
-                    if(key[:5] == 'tnmr_'):
-                        key = key[5:]
-                    data[key][index] = val
-                    try:
-                        print(key, hdf_to_dict(val))
-                    except:
-                        pass
-                        
+                    print(get_formatted_key(ikey + '/' + key))
+                    parse_dataset_into_struct(ival, key, data, index, key_to_write=get_formatted_key(ikey + '/' + key))
+    
     print('#' * 100)
     print(data)
     print('#'*100)
