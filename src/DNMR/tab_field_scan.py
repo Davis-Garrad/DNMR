@@ -20,7 +20,11 @@ class TabFieldScan(Tab):
         self.data = [[], []]
 
     def plot_logic(self):
-        if('ppms_mf' in self.fileselector.data.keys() or 'ppms_field' in self.fileselector.data.keys() or 'se_mf' in self.fileselector.data.keys()): # legacy
+        if('environment_se_mf' in self.fileselector.data.keys() or 
+            'ppms_mf' in self.fileselector.data.keys() or 
+            'ppms_field' in self.fileselector.data.keys() or 
+            'se_mf' in self.fileselector.data.keys()): # legacy
+                
             index = self.fileselector.spinbox_index.value()
 
             times = self.data_widgets['tab_phase'].data[0]
@@ -34,15 +38,18 @@ class TabFieldScan(Tab):
             mag_integral = np.sum(np.abs(reals + 1j*imags), axis=1)
 
             try:
-                fields = self.fileselector.data.se_mf
+                fields = self.fileselector.data.environment_se_mf
             except:
                 try:
-                    fields = self.fileselector.data.ppms_field
+                    fields = self.fileselector.data.se_mf
                 except:
                     try:
-                        fields = self.fileselector.data.ppms_mf
+                        fields = self.fileselector.data.ppms_field
                     except:
-                        return
+                        try:
+                            fields = self.fileselector.data.ppms_mf
+                        except:
+                            return
                         
             #self.ax.plot(fields, np.abs(real_integral + 1j*imag_integral), 'k', alpha=0.6, label=f'Mag. \u222b', linestyle='None', marker='o')
             #self.ax.plot(fields, real_integral, 'r', alpha=0.6, label='R \u222b', linestyle='None', marker='o')

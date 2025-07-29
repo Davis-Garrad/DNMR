@@ -36,6 +36,9 @@ class TabPhaseAdjustment(Tab):
         self.pushbutton_phaseadjust = QPushButton('Autophase')
         self.pushbutton_phaseadjust.clicked.connect(self.autophase)
         
+        self.pushbutton_locatemax = QPushButton('Find Max Signal')
+        self.pushbutton_locatemax.clicked.connect(self.locate_max)
+        
         self.pushbutton_applyall = QPushButton('Apply to all')
         self.pushbutton_applyall.clicked.connect(lambda: self.phase_set(self.phase_adjustment.slider_phase.value()))
 
@@ -43,6 +46,7 @@ class TabPhaseAdjustment(Tab):
         l0 = QHBoxLayout()
         l0.addWidget(self.phase_adjustment)
         l3 = QVBoxLayout()
+        l3.addWidget(self.pushbutton_locatemax)
         l3.addWidget(self.pushbutton_phaseadjust)
         l3.addWidget(self.pushbutton_applyall)
         l0.addLayout(l3)
@@ -52,6 +56,15 @@ class TabPhaseAdjustment(Tab):
         l2.addLayout(l0)
         l2.addLayout(l1)
         return l2
+
+    def locate_max(self):
+        if(self.data[0].shape[0] == 0):
+            return
+            
+        flat_index = np.argmax(np.abs(self.data[1])) # max magnitude
+        index = np.unravel_index(flat_index, self.data[1].shape)
+        
+        self.fileselector.spinbox_index.setValue(index[0])
 
     def autophase(self):
         if(self.data[0].shape[0] == 0):

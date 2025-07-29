@@ -54,14 +54,20 @@ class QuickInfoWidget(QWidget):
     def __init__(self, parent=None):
         super(QuickInfoWidget, self).__init__(parent)
         
+        self.label_filetitle = QLabel('Current file: N/A')
         self.listview_envinfo = QListWidget()
         
         layout = QVBoxLayout()
+        layout.addWidget(self.label_filetitle)
         layout.addWidget(self.listview_envinfo)
         self.setLayout(layout)
         
-    def update_items(self, d, index):
+    def update_items(self, fns, d, index):
         self.listview_envinfo.clear()
+        
+        fmt_fns = [ f.split('/')[-1].split('\\')[-1] for f in fns ]
+        self.label_filetitle.setText(f'Current file: {fmt_fns[0]}' if len(fmt_fns)==1 else f'Current files: {fmt_fns}')
+        
         if('size' in d.keys()):
             self._update_items(d, index)
         
@@ -131,7 +137,7 @@ class FileSelectionWidget(QWidget):
         
         self.infodialogs = []
 
-        self.callbacks = [ lambda: self.quickinfo_envinronment.update_items(self.data, self.spinbox_index.value()) ]
+        self.callbacks = [ lambda: self.quickinfo_envinronment.update_items(self.fn, self.data, self.spinbox_index.value()) ]
         self.spinbox_index.valueChanged.connect(self.callback)
         self.spinbox_channel.valueChanged.connect(self.channel_callback)
     
@@ -143,6 +149,7 @@ class FileSelectionWidget(QWidget):
         self.data = self._data[self.spinbox_channel.value()]
         if(len(self.fn) > 0):
             self.spinbox_index.setRange(0, self.data['size']-1)
+            self.label_index.setText(f'Index (/{self.data["size"]}):')
         self.spinbox_index.setValue(0)
         self.callback()
     
@@ -152,6 +159,13 @@ class FileSelectionWidget(QWidget):
 
     def load_files(self, fns):
         try:
+            newch = self.spinbox_channel.value()
+            try: # just in case the channel hasn't been made yet.
+                while(len(self._fn[newch]) > 0):
+                    newch += 1
+            except:
+                pass # we found an empty spot!
+            self.spinbox_channel.setValue(newch)
             big_data = fileops.get_data(fns[0])
             if(len(fns) > 1):
                 for fn in fns[1:]:
@@ -162,6 +176,7 @@ class FileSelectionWidget(QWidget):
             self._fn[self.spinbox_channel.value()] = self.fn
             self._data[self.spinbox_channel.value()] = self.data
             self.spinbox_index.setRange(0, self.data['size']-1)
+            self.label_index.setText(f'Index (/{self.data["size"]}):')
             self.spinbox_index.setValue(0)
             self.callback()
         except:
