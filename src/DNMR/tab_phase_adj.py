@@ -147,7 +147,7 @@ class TabPhaseAdjustment(Tab):
         ps = self.get_global_phaseset()
         self.phase_adjustment.slider_phase.setValue(int(ps[index]))
 
-        complexes = reals + 1j*imags
+        complexes = reals.astype(np.complex128) + 1j*imags.astype(np.complex128)
         
         for i in range(complexes.shape[0]):
             t = self.combobox_filtertype.currentText()

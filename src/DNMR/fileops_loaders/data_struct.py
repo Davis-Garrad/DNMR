@@ -46,7 +46,7 @@ class data_struct():
         else:
             self.data[attr] = val
         
-    def __iadd__(self, r):
+    def __add__(self, r):
         for key in list(r.keys()):
             if not(key in self.data.keys()):
                 self.data[key] = r[key]
@@ -56,7 +56,7 @@ class data_struct():
                 continue
             val = self.data[key]
             if(isinstance(self.data[key], data_struct)):
-                self.data[key] += r[key]
+                self.data[key] = self.data[key] + r[key]
             else:
                 try:
                     val = np.array(val)

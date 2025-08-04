@@ -10,7 +10,6 @@ def read_hdf_v100(file):
     points = []
     point_indices = []
     point_numbers = []
-    print(toplevel)
     count = 0
     for i in toplevel: # get all points
         m = re.match('entry(?P<index>[0-9]+)', i)
@@ -85,12 +84,7 @@ def read_hdf_v100(file):
                 parse_dataset_into_struct(file[i], ikey, data, index)
             elif(isinstance(ival, hdf.Group)):
                 for key, val in ival.items():
-                    print(get_formatted_key(ikey + '/' + key))
                     parse_dataset_into_struct(ival, key, data, index, key_to_write=get_formatted_key(ikey + '/' + key))
-    
-    print('#' * 100)
-    print(data)
-    print('#'*100)
         
     for key, val in data.items():
         # check if we can turn it into a dict, then numpy array
@@ -113,8 +107,13 @@ def read_hdf_v100(file):
                     pass
                 data[key] = arr
             except:
-                pass   
-    print('#' * 100)
+                pass
+    
+    if('actual_num_acqs' in data.params.keys()):
+        data['reals'] /= data.params.actual_num_acqs[:,None]
+        data['imags'] /= data.params.actual_num_acqs[:,None]
+                
+    #print('#' * 100)
     print(data)
-    print('#'*100)
+    
     return data

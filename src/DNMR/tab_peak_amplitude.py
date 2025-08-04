@@ -93,6 +93,9 @@ class TabPeakAmplitude(Tab):
         integrations = np.sum(ft[:,start_index:end_index], axis=1)
         integrations /= np.max(np.abs(integrations))
         integrals = integrations
+        
+        peaks = ft[:,len(ft)//2]
+        integrals = peaks
 
         if(self.combobox_labelling.currentText() == 'Load Order'):
             indices = np.linspace(0, self.fileselector.data['size'], self.fileselector.data['size'], endpoint=False)
@@ -112,7 +115,7 @@ class TabPeakAmplitude(Tab):
         imags = np.imag(integrals)
         mags = np.abs(integrals)
         
-        self.ax.plot(indices, mags[sorter], 'k', alpha=0.6, label=f'Mag.', linestyle='none', marker='o')
+        self.ax.plot(indices, mags[sorter], alpha=0.6, label=f'Mag.', linestyle='none', marker='o')
         #self.ax.plot(indices, reals[sorter], 'r', alpha=0.6, label='R', linestyle='none', marker='o')
         #self.ax.plot(indices, imags[sorter], 'b', alpha=0.6, label='I', linestyle='none', marker='o')
         

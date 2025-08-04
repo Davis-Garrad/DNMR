@@ -2,9 +2,62 @@ import traceback
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import *
+from PyQt6.QtGui import QDoubleValidator
 import numpy as np
 
 import DNMR.fileops as fileops
+
+class FitParameterWidget(QWidget):
+    def __init__(self, label, units, parent=None):
+        super(FitParameterWidget, self).__init__(parent)
+        
+        self.label = label
+        self.units = units
+        
+        self.checkbox_fix    = QCheckBox('Fix?')
+        self.checkbox_fix.stateChanged.connect(self.update_fixed)
+        
+        self.label_parameter = QLabel(f'{self.label}=')
+        self.label_units = QLabel(f'{self.units}')
+        self.lineedit_value  = QLineEdit(f'?')
+        self.lineedit_value.setValidator(QDoubleValidator())
+        self.lineedit_value.setEnabled(False)
+        
+        li  = QHBoxLayout()
+        li.addWidget(self.checkbox_fix)
+        li.addWidget(self.label_parameter)
+        li.addWidget(self.lineedit_value)
+        li.addWidget(self.label_units)
+        
+        self.setLayout(li)
+    
+    def update_fixed(self):
+        self.lineedit_value.setEnabled(self.is_fixed())
+        
+    def is_fixed(self):
+        return self.checkbox_fix.isChecked()
+        
+    def get_value(self, units=False):
+        if(units):
+            return str(self.get_value() + self.units)
+        try:
+            return float(self.lineedit_value.text().split('\u00b1')[0])
+        except:
+            return 0
+        
+    def get_error(self, units=False):
+        if(units):
+            return str(self.get_error() + self.units)
+        try:
+            return float(self.lineedit_value.text().split('\u00b1')[1])
+        except:
+            return 0
+        
+    def set_value(self, v, uncertainty):
+        self.lineedit_value.setText(f'{v}\u00b1{uncertainty}')
+        
+    def get_full_display(self):
+        return f'{self.label}={self.lineedit_value.text()} {self.units}'
 
 class PhaseAdjustmentWidget(QWidget):
     def __init__(self, parent=None, callback=lambda: None):
@@ -65,16 +118,20 @@ class QuickInfoWidget(QWidget):
     def update_items(self, fns, d, index):
         self.listview_envinfo.clear()
         
-        fmt_fns = [ f.split('/')[-1].split('\\')[-1] for f in fns ]
-        self.label_filetitle.setText(f'Current file: {fmt_fns[0]}' if len(fmt_fns)==1 else f'Current files: {fmt_fns}')
-        
-        if('size' in d.keys()):
-            self._update_items(d, index)
+        try:
+            fmt_fns = [ f.split('/')[-1].split('\\')[-1] for f in fns ]
+            self.label_filetitle.setText(f'Current file: {fmt_fns[0]}' if len(fmt_fns)==1 else f'Current files: {fmt_fns[0]} + ...')
+            
+            if('size' in d.keys()):
+                self._update_items(d, index)
+        except:
+            self.label_filetitle.setText('Current file: N/A')
         
     def _update_items(self, d, index, length=None, prefix=''):
         '''Takes a data_struct. Updates with all keys starting with environment_'''
         if(length is None):
             length = d['size']
+            
         for i in list(d.keys()):
             if(i[:len('environment_')] != 'environment_'):
                 continue
@@ -92,6 +149,84 @@ class QuickInfoWidget(QWidget):
             else:
                 self.listview_envinfo.addItem(f'{name}={d[i]}')
         
+        if('comments' in d.keys()):
+            s = str(d['comments'][index][0].decode('utf-8'))
+            self.listview_envinfo.addItem(f'comments: '+s)
+        if('sample' in d.keys()):
+            s = str(d['sample'][index][0].decode('utf-8'))
+            self.listview_envinfo.addItem(f'sample: '+s)
+        if('nucleus' in d.keys()):
+            s = str(d['nucleus'][index][0].decode('utf-8'))
+            self.listview_envinfo.addItem(f'nucleus: '+s)
+
+class SequenceWidget(QWidget):
+    def __init__(self, parent=None):
+        super(SequenceWidget, self).__init__(parent)
+        
+        self.listview_seq = QListWidget()
+        
+        layout = QVBoxLayout()
+        layout.addWidget(self.listview_seq)
+        self.setLayout(layout)
+        
+    def update_items(self, d, index):
+        self.listview_seq.clear()
+        
+        if('sequence' in d.keys()):
+            self._update_items(d['sequence'], index)
+        
+    def _update_items(self, d, index):
+        '''Takes a data_struct. Updates sequence visualisation'''
+        pulse_strs = []
+        pulse_indices = []
+        
+        max_width_pw = 0
+        max_width_ph = 0
+        max_width_pc = 0
+        max_width_dt = 0
+        max_width_pi = 0
+        
+        for i in list(d.keys()): # '0', '1', '2', etc. (pulses)
+            try:
+                pindex = int(i) # might have 'size', etc.
+                if(len(str(pindex)) > max_width_pi):
+                    max_width_pi = len(str(pindex))
+            except:
+                continue
+                
+            pw = str(d[i]['pulse_width'][index])
+            dt = str(d[i]['delay_time'][index])
+            pc = str(d[i]['phase_cycle'][index])
+            ph = str(d[i]['pulse_height'][index])
+            
+            if(len(pw) > max_width_pw):
+                max_width_pw = len(pw)
+            if(len(dt) > max_width_dt):
+                max_width_dt = len(dt)
+            if(len(pc) > max_width_pc):
+                max_width_pc = len(pc)
+            if(len(ph) > max_width_ph):
+                max_width_ph = len(ph)
+        
+        for i in list(d.keys()): # '0', '1', '2', etc. (pulses)
+            try:
+                pindex = int(i) # might have 'size', etc.
+            except:
+                continue
+                
+            pw = d[i]['pulse_width'][index]
+            dt = d[i]['delay_time'][index]
+            pc = d[i]['phase_cycle'][index]
+            ph = d[i]['pulse_height'][index]
+            
+            S = f'{pindex:>0{max_width_pi}}: {pw:>{max_width_pw}}\u03bcs @ {ph:>{max_width_ph}}% & {dt:>{max_width_dt}}\u03bcs delay'
+            pulse_indices += [pindex]
+            pulse_strs += [S]
+        
+        pulse_strs = np.array(pulse_strs)[np.argsort(np.array(pulse_indices))]
+            
+        for i in pulse_strs:
+            self.listview_seq.addItem(i)
 
 class FileSelectionWidget(QWidget):
     def __init__(self, parent=None):
@@ -108,25 +243,31 @@ class FileSelectionWidget(QWidget):
         self.spinbox_index = QSpinBox()
         self.checkbox_holdplots = QCheckBox('Hold plots')
         self.quickinfo_envinronment = QuickInfoWidget()
+        self.sequence_info = SequenceWidget()
 
-        layout = QHBoxLayout()
+        layout = QGridLayout()
         l0 = QVBoxLayout()
         l0.addWidget(self.button_load)
         l0.addWidget(self.button_info)
-        layout.addLayout(l0)
         l = QHBoxLayout()
         l.addWidget(self.label_index)
         l.addWidget(self.spinbox_index)
         l2 = QHBoxLayout()
         l2.addWidget(self.label_channel)
         l2.addWidget(self.spinbox_channel)
-        l_m = QVBoxLayout()
-        l_m.addLayout(l2)
-        l_m.addLayout(l)
-        l_m.addWidget(self.checkbox_holdplots)
-        layout.addLayout(l_m)
+        l0.addLayout(l)
+        l0.addLayout(l2)
+        l0.addWidget(self.checkbox_holdplots)
+        l_info = QHBoxLayout()
         self.quickinfo_envinronment.setSizePolicy(QSizePolicy.Policy.Maximum,QSizePolicy.Policy.Maximum)
-        layout.addWidget(self.quickinfo_envinronment)
+        l_info.addWidget(self.quickinfo_envinronment)
+        self.sequence_info.setSizePolicy(QSizePolicy.Policy.Maximum,QSizePolicy.Policy.Maximum)
+        l_info.addWidget(self.sequence_info)
+        
+        layout.addLayout(l0, 0, 0)
+        layout.setColumnStretch(0,1)
+        layout.addLayout(l_info, 0, 1)
+        layout.setColumnStretch(1,2)
         
         self.setLayout(layout)
 
@@ -138,18 +279,19 @@ class FileSelectionWidget(QWidget):
         self.infodialogs = []
 
         self.callbacks = [ lambda: self.quickinfo_envinronment.update_items(self.fn, self.data, self.spinbox_index.value()) ]
+        self.callbacks += [ lambda: self.sequence_info.update_items(self.data, self.spinbox_index.value()) ]
         self.spinbox_index.valueChanged.connect(self.callback)
         self.spinbox_channel.valueChanged.connect(self.channel_callback)
     
     def channel_callback(self):
         while(len(self._fn) <= self.spinbox_channel.value()):
             self._fn += [[]]
-            self._data += [{}]
+            self._data += [fileops.data_struct()]
         self.fn = self._fn[self.spinbox_channel.value()]
         self.data = self._data[self.spinbox_channel.value()]
         if(len(self.fn) > 0):
             self.spinbox_index.setRange(0, self.data['size']-1)
-            self.label_index.setText(f'Index (/{self.data["size"]}):')
+            self.label_index.setText(f'Index (/{self.data["size"]-1}, 0-indexed):')
         self.spinbox_index.setValue(0)
         self.callback()
     
@@ -165,18 +307,18 @@ class FileSelectionWidget(QWidget):
                     newch += 1
             except:
                 pass # we found an empty spot!
-            self.spinbox_channel.setValue(newch)
             big_data = fileops.get_data(fns[0])
             if(len(fns) > 1):
                 for fn in fns[1:]:
                     data = fileops.get_data(fn)
-                    big_data += data
+                    big_data = big_data + data
+            self.spinbox_channel.setValue(newch)
             self.fn = fns # above lines will throw exceptions if anything bad happens, so if anything bad happens, we want to preserve the previous file being loaded
             self.data = big_data
-            self._fn[self.spinbox_channel.value()] = self.fn
-            self._data[self.spinbox_channel.value()] = self.data
+            self._fn[newch] = self.fn
+            self._data[newch] = self.data
             self.spinbox_index.setRange(0, self.data['size']-1)
-            self.label_index.setText(f'Index (/{self.data["size"]}):')
+            self.label_index.setText(f'Index (/{self.data["size"]-1}, 0-indexed):')
             self.spinbox_index.setValue(0)
             self.callback()
         except:
