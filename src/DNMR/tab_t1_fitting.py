@@ -129,13 +129,18 @@ class TabT1Fit(Tab):
         plotted_integrations = []
         plotted_del_times = []
         plotted_errs = []
+        excluded_integrations = []
+        excluded_del_times = []
         for i in range(len(integrations)):
             if not(i in self.excluded_points_indices):
                 plotted_integrations += [integrations[i]]
                 plotted_del_times += [del_times[i]]
                 plotted_errs += [uncertainties[i]]
+            else:
+                excluded_integrations += [integrations[i]]
+                excluded_del_times += [del_times[i]]
         plt_pts = self.ax.errorbar(plotted_del_times, plotted_integrations, label='integrations', linestyle='', marker='o', yerr=plotted_errs)
-        self.ax.scatter(del_times[self.excluded_points_indices], integrations[self.excluded_points_indices], color=(plt_pts[-1][-1]).get_color(), linestyle='', marker='x')
+        self.ax.scatter(excluded_del_times, excluded_integrations, color=(plt_pts[-1][-1]).get_color(), linestyle='', marker='x')
         
         post_aq_max = np.max(self.fileselector.data.params.post_acquisition_time * 1e3) # this is in ms. Our axes in us
         self.ax.axvline(post_aq_max, linestyle='--', color='k')
