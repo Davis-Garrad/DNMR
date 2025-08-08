@@ -29,9 +29,28 @@ class TabPhaseAdjustment(Tab):
         self.spinbox_filtersize.setValue(12)
         self.spinbox_filtersize.valueChanged.connect(self.update)
         
+        self.checkbox_filter = QCheckBox('Filter')
+        self.checkbox_filter.checkStateChanged.connect(self.update)
         self.combobox_filtertype = QComboBox()
-        self.combobox_filtertype.addItems(['Sinc','Gaussian','Half-Gaussian','Median','None'])
+        self.combobox_filtertype.addItems(['Sinc','Gaussian','Half-Gaussian','Median'])
         self.combobox_filtertype.currentTextChanged.connect(self.update)
+        
+        
+        self.spinbox_multfiltersize = QDoubleSpinBox()
+        self.spinbox_multfiltersize.setSingleStep(0.1)
+        self.spinbox_multfiltersize.setValue(3)
+        self.spinbox_multfiltersize.valueChanged.connect(self.update)
+        self.spinbox_multfilterposition = QDoubleSpinBox()
+        self.spinbox_multfilterposition.setSingleStep(1)
+        self.spinbox_multfilterposition.setValue(0)
+        self.spinbox_multfilterposition.setMinimum(-1e9)
+        self.spinbox_multfilterposition.valueChanged.connect(self.update)
+        
+        self.checkbox_multfilter = QCheckBox('Window')
+        self.checkbox_multfilter.checkStateChanged.connect(self.update)
+        self.combobox_multfiltertype = QComboBox()
+        self.combobox_multfiltertype.addItems(['Half-Gaussian','Sinc','Gaussian',])
+        self.combobox_multfiltertype.currentTextChanged.connect(self.update)
         
         self.pushbutton_phaseadjust = QPushButton('Autophase')
         self.pushbutton_phaseadjust.clicked.connect(self.autophase)
@@ -50,9 +69,20 @@ class TabPhaseAdjustment(Tab):
         l3.addWidget(self.pushbutton_phaseadjust)
         l3.addWidget(self.pushbutton_applyall)
         l0.addLayout(l3)
-        l1 = QHBoxLayout()
-        l1.addWidget(self.combobox_filtertype)
-        l1.addWidget(self.spinbox_filtersize)
+        
+        l1 = QGridLayout()
+        l1.addWidget(self.checkbox_filter,           0, 0)
+        l1.addWidget(self.combobox_filtertype,       0, 1)
+        l1.addWidget(self.spinbox_filtersize,        0, 2, 1, 2)
+        l1.addWidget(self.checkbox_multfilter,       1, 0)
+        l1.addWidget(self.combobox_multfiltertype,   1, 1)
+        l1.addWidget(self.spinbox_multfiltersize,    1, 2)
+        l1.addWidget(self.spinbox_multfilterposition,1, 3)
+        l1.setColumnStretch(0, 0)
+        l1.setColumnStretch(1, 2)
+        l1.setColumnStretch(2, 3)
+        l1.setColumnStretch(3, 3)
+        
         l2.addLayout(l0)
         l2.addLayout(l1)
         return l2
@@ -144,34 +174,52 @@ class TabPhaseAdjustment(Tab):
         times = self.fileselector.data.times
         times = times[:,:reals.shape[1]]
         
+        peak_loc = self.get_global_peaklocs()[index]
+        
         ps = self.get_global_phaseset()
         self.phase_adjustment.slider_phase.setValue(int(ps[index]))
 
         complexes = reals.astype(np.complex128) + 1j*imags.astype(np.complex128)
         
-        for i in range(complexes.shape[0]):
-            t = self.combobox_filtertype.currentText()
-            if(t == 'Gaussian'):
-                kernel = np.exp(-1/2 * np.square(np.linspace(-3, 3, self.spinbox_filtersize.value()*2+1)))
-            elif(t == 'Sinc'):
-                kernel = np.sinc(np.linspace(-reals.shape[1]/(2*self.spinbox_filtersize.value() + 1), reals.shape[1]/(2*self.spinbox_filtersize.value() + 1), reals.shape[1]))
-            elif(t == 'Half-Gaussian'):
-                i_s = np.linspace(-3, 3, self.spinbox_filtersize.value()*2+1)
-                kernel = np.where(i_s >= 0, np.exp(-1/2 * np.square(i_s)), 0)
-            elif(t == 'None'):
-                kernel = 1
-            elif(t == 'Median'):
-                complexes[i] = sp.ndimage.median_filter(reals[i], mode='wrap', size=self.spinbox_filtersize.value()) + 1j * sp.ndimage.median_filter(imags[i], mode='wrap', size=self.spinbox_filtersize.value())
-                continue
-            kernel /= np.sum(kernel)
-            complexes[i] = np.convolve(complexes[i], kernel, mode='same')
+        if(self.checkbox_filter.isChecked()):
+            for i in range(complexes.shape[0]):
+                t = self.combobox_filtertype.currentText()
+                if(t == 'Gaussian'):
+                    kernel = np.exp(-1/2 * np.square(np.linspace(-3, 3, self.spinbox_filtersize.value()*2+1)))
+                elif(t == 'Sinc'):
+                    kernel = np.sinc(np.linspace(-reals.shape[1]/(2*self.spinbox_filtersize.value() + 1), reals.shape[1]/(2*self.spinbox_filtersize.value() + 1), reals.shape[1]))
+                elif(t == 'Half-Gaussian'):
+                    i_s = np.linspace(-3, 3, self.spinbox_filtersize.value()*2+1)
+                    kernel = np.where(i_s >= 0, np.exp(-1/2 * np.square(i_s)), 0)
+                elif(t == 'None'):
+                    kernel = 1
+                elif(t == 'Median'):
+                    complexes[i] = sp.ndimage.median_filter(reals[i], mode='wrap', size=self.spinbox_filtersize.value()) + 1j * sp.ndimage.median_filter(imags[i], mode='wrap', size=self.spinbox_filtersize.value())
+                    continue
+                kernel /= np.sum(kernel)
+                complexes[i] = np.convolve(complexes[i], kernel, mode='same')
 
+        if(self.checkbox_multfilter.isChecked()):
+            t = self.combobox_multfiltertype.currentText()
+            s = self.spinbox_multfiltersize.value()
+            
+            dt = times - self.get_global_peaklocs()[:,None] - self.spinbox_multfilterposition.value()
+            if(t == 'Gaussian'):
+                kernel = np.exp(-1/2 * np.square(dt / s))
+            elif(t == 'Sinc'):
+                kernel = np.sinc(dt / s)
+            elif(t == 'Half-Gaussian'):
+                kernel = np.where(dt >= 0, np.exp(-1/2 * np.square(dt/s)), 0)
+            elif(t == 'None'):
+                kernel = np.ones_like(dt)
+            complexes *= kernel
+            self.ax.plot(times[index], kernel[index] * np.max(np.abs(complexes[index])/np.where(kernel[index]>0, kernel[index], 1e9)), color='k', alpha=0.3)
+            
         phases = np.exp(1j*np.array(ps)* np.pi/180.0)
         complexes *= phases[:,None]
 
         #complexes -= np.average(complexes, axis=1)[:,None]
 
-        peak_loc = self.get_global_peaklocs()[index]
         self.ax.axvline(peak_loc, color='k', linestyle='--', alpha=0.5)
 
         total = np.sum(np.square(np.abs(complexes[index]))) * (times[index][1] - times[index][0])

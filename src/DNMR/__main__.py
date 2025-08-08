@@ -84,6 +84,7 @@ def start_app():
     app = QApplication(sys.argv)
     main = MainWindow()
     main.setWindowTitle('DNMR')
+    main.resize(640, 960)
     main.show()
 
     try:
