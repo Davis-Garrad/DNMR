@@ -49,7 +49,7 @@ class TabPhaseAdjustment(Tab):
         self.checkbox_multfilter = QCheckBox('Window')
         self.checkbox_multfilter.checkStateChanged.connect(self.update)
         self.combobox_multfiltertype = QComboBox()
-        self.combobox_multfiltertype.addItems(['Half-Gaussian','Sinc','Gaussian',])
+        self.combobox_multfiltertype.addItems(['Half-Gaussian','Sinc','Gaussian','Box'])
         self.combobox_multfiltertype.currentTextChanged.connect(self.update)
         
         self.pushbutton_phaseadjust = QPushButton('Autophase')
@@ -191,8 +191,6 @@ class TabPhaseAdjustment(Tab):
                 elif(t == 'Half-Gaussian'):
                     i_s = np.linspace(-3, 3, self.spinbox_filtersize.value()*2+1)
                     kernel = np.where(i_s >= 0, np.exp(-1/2 * np.square(i_s)), 0)
-                elif(t == 'None'):
-                    kernel = 1
                 elif(t == 'Median'):
                     complexes[i] = sp.ndimage.median_filter(reals[i], mode='wrap', size=self.spinbox_filtersize.value()) + 1j * sp.ndimage.median_filter(imags[i], mode='wrap', size=self.spinbox_filtersize.value())
                     continue
@@ -210,8 +208,8 @@ class TabPhaseAdjustment(Tab):
                 kernel = np.sinc(dt / s)
             elif(t == 'Half-Gaussian'):
                 kernel = np.where(dt >= 0, np.exp(-1/2 * np.square(dt/s)), 0)
-            elif(t == 'None'):
-                kernel = np.ones_like(dt)
+            elif(t == 'Box'):
+                kernel = np.where((dt >= 0) * (dt <= s), 1, 0)
             complexes *= kernel
             self.ax.plot(times[index], kernel[index] * np.max(np.abs(complexes[index])/np.where(kernel[index]>0, kernel[index], 1e9)), color='k', alpha=0.3)
             
