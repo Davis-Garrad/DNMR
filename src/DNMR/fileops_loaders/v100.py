@@ -110,10 +110,11 @@ def read_hdf_v100(file):
                 pass
     
     if('actual_num_acqs' in data.params.keys()):
+        print('Normalising signals from number of acquisitions')
         data['reals'] /= data.params.actual_num_acqs[:,None]
         data['imags'] /= data.params.actual_num_acqs[:,None]
                 
     #print('#' * 100)
-    print(data)
+    #print(data)
     
     return data

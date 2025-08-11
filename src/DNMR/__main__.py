@@ -1,5 +1,6 @@
 
 import sys
+import pathlib
 import traceback
 
 import numpy as np
@@ -12,6 +13,7 @@ from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as Navigation
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import *
+from PyQt6 import QtGui
 
 import DNMR.fileops as fileops
 from DNMR.miniwidgets import *
@@ -26,6 +28,12 @@ from DNMR.tab_inv_laplace import *
 class MainWindow(QWidget):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
+        path_to_icon = str(pathlib.Path(__file__).parent.absolute())+'/icon_transparent.png'
+        pixmap = QtGui.QPixmap()
+        pixmap.loadFromData(pathlib.Path(path_to_icon).read_bytes())
+        appIcon = QtGui.QIcon(pixmap)
+        
+        self.setWindowIcon(appIcon)
 
         self.tabwidget_tabs = QTabWidget()
         data_widgets = {}
@@ -48,8 +56,8 @@ class MainWindow(QWidget):
         self.tab_peakamp = TabPeakAmplitude(data_widgets, self)
         self.tab_inv_laplace = TabInvLaplace(data_widgets, self)
 
-        self.tabwidget_tabs.addTab(self.tab_phaseadj, 'Phase Adj.')
-        self.tabwidget_tabs.addTab(self.tab_ft, 'FT')
+        self.tabwidget_tabs.addTab(self.tab_phaseadj, 'Time Domain')
+        self.tabwidget_tabs.addTab(self.tab_ft, 'Freq. Domain')
         self.tabwidget_tabs.addTab(self.tab_t1, 'T1 Fit')
         self.tabwidget_tabs.addTab(self.tab_fieldscan, 'Field Scan')
         self.tabwidget_tabs.addTab(self.tab_peakamp, 'Peak Amplitudes')

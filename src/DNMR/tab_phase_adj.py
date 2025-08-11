@@ -232,6 +232,10 @@ class TabPhaseAdjustment(Tab):
         self.ax.plot(times[index][:reals[index].shape[0]], np.average(reals, axis=0), 'r--', alpha=0.3, label='Avg. R')
         self.ax.plot(times[index][:imags[index].shape[0]], np.average(imags, axis=0), 'b--', alpha=0.3, label='Avg. I')
         self.ax.set_xlabel('time (us)')
+        if('actual_num_acqs' in self.fileselector.data.params.keys()):
+            self.ax.set_ylabel('#-normalised signal (a.u.)')
+        else:
+            self.ax.set_ylabel('signal (a.u.)')
 
         self.ax.axhline(0, color='k', linestyle='-')
 

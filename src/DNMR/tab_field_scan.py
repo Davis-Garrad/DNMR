@@ -62,7 +62,11 @@ class TabFieldScan(Tab):
             r = reals[:,max_index]
             i = imags[:,max_index]
             M = np.sqrt(np.square(r) + np.square(i))
-            self.ax.plot(fields, M, linestyle='None', marker='x', color='k', label='Mag. (peak)')
+            fieldsort = np.argsort(fields, axis=0)
+            fields = fields[fieldsort[:,0]]
+            M = M[fieldsort]
+            
+            self.ax.plot(fields, M/np.max(M), linestyle='None', marker='x', label='Mag. (peak)')
             #self.ax.plot(fields, r, linestyle='None', marker='x', color='r', label='R (peak)')
             #self.ax.plot(fields, i, linestyle='None', marker='x', color='b', label='I (peak)')
             
