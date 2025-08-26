@@ -14,9 +14,9 @@ from DNMR.miniwidgets import *
 from DNMR.tab import Tab
 from DNMR.fileops import data_struct
 
-class TabPeakAmplitude(Tab):
+class TabChannelSlice(Tab):
     def __init__(self, data_widgets, parent=None):
-        super(TabPeakAmplitude, self).__init__(data_widgets, 'tab_peakamp', parent)
+        super(TabChannelSlice, self).__init__(data_widgets, 'tab_channelslice', parent)
         
         self.fileselector.callbacks += [ self.retrieve_labels ]
         self.data = ([], [])
@@ -74,11 +74,10 @@ class TabPeakAmplitude(Tab):
         for k in keys:
             self.combobox_labelling.addItem(k)
             
-        if(current_item in ['Load Order'] + keys):
-            self.combobox_labelling.setCurrentIndex((['Load Order'] + keys).index(current_item))
+        if(current_item in keys + ['Load Order']):
+            self.combobox_labelling.setCurrentLabel(current_item)
 
     def plot_logic(self):
-        
         freq = self.data_widgets['tab_ft'].data[0]
         ft   = self.data_widgets['tab_ft'].data[1]
         real = np.real(ft)
@@ -96,7 +95,7 @@ class TabPeakAmplitude(Tab):
             end_index = tmp
 
         integrations = np.sum(ft[:,start_index:end_index], axis=1)
-        #integrations /= np.max(np.abs(integrations))
+        integrations /= np.max(np.abs(integrations))
         integrals = integrations
         
         peaks = ft[:,len(ft)//2]

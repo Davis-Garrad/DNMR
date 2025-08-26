@@ -64,9 +64,10 @@ class TabT1Fit(Tab):
             l.addWidget(frm)
 
         # Title, var_name, var_units, var_name, var_units, ...
-        add_fit_frame('7/2 Spin', '\u03b30', '', 's', '', 'T1', '\u03bcs', 'r', '')
-        add_fit_frame('7/2 Spin (Sat. 1)', '\u03b30', '', 's', '', 'T1', '\u03bcs', 'r', '')
-        #add_fit_frame('1/2 Spin', '\u03b30', '', 's', '', 'T1', '\u03bcs', 'r', '')
+            # DEVELOPER NOTE: If you want to add more options for this, make sure to define fit_func in ``fit`` below
+        add_fit_frame('7/2 Spin',          '\u03b3\u2080', '', 's', '', 'T\u2081', '\u03bcs', 'r', '')
+        add_fit_frame('7/2 Spin (Sat. 1)', '\u03b3\u2080', '', 's', '', 'T\u2081', '\u03bcs', 'r', '')
+        add_fit_frame('1/2 Spin',          '\u03b3\u2080', '', 's', '', 'T\u2081', '\u03bcs', 'r', '')
         #add_fit_frame('Spin 1', '\u03b30', '', 's', '', 'T1', '\u03bcs', 'r', '')
         # ...
         
@@ -115,7 +116,7 @@ class TabT1Fit(Tab):
             integrations /= np.max(integrations)
         rt = np.real(self.data_widgets['tab_ft'].data[1])
         
-        uncertainties = 1e-6*np.ones_like(integrations) # TODO: Figure out real stddevs np.std(np.append(rt[:,:start_index], rt[:,end_index:], axis=1), axis=1)*np.sqrt(end_index-start_index)*np.ones_like(integrations) # TODO: Figure out real stddevs
+        uncertainties = 1e-6*np.ones_like(integrations) # TODO: Figure out real stddevs
         #uncertainties += integrations * np.sqrt((end_index-start_index+1) / rt.shape[1])
         #uncertainties = np.abs(uncertainties)
             
@@ -205,8 +206,17 @@ class TabT1Fit(Tab):
                                                1/1092*np.exp(-np.pow(15*t/T1, r)) + 
                                                49/132*np.exp(-np.pow(21*t/T1, r)) + 
                                                392/858*np.exp(-np.pow(28*t/T1, r))))
+                
+        elif(self.combobox_fittingroutine.currentText() == '1/2 Spin'):
+            bounds = [ [0, np.max(np.abs(self.data[1]))*10], [-1, 10], [np.min(del_times)/10, np.max(del_times)*10], [0.99*0, 1.01*10] ]
             
-            
+            def fit_func(args, t):
+                gamma_0 = args[0]
+                s = args[1]
+                T1 = args[2]
+                r = args[3]
+                
+                return gamma_0 * (1 - (1+s) * np.exp(-np.pow(t/T1, r)))
             
         def cost_func(args, x, y, yerr):
             return np.sum(np.square((fit_func(args, x) - y)/np.maximum(yerr, 0.01))) # more points is more fits

@@ -25,21 +25,58 @@ class TabFourierTransform(Tab):
         #self.button_fit = QPushButton('Fit Gaussian')
         #self.button_fit.clicked.connect(self.fit)
         
-        self.canvas.mpl_connect('button_press_event', self.process_button)
+        self.label_integration_width = QLabel('Width (MHz)')
+        self.spinbox_integration_width = QDoubleSpinBox()
+        self.spinbox_integration_width.setRange(0, 1e9)
+        self.spinbox_integration_width.setSingleStep(1e-6)
+        self.spinbox_integration_width.setValue(0.8)
+        self.spinbox_integration_width.setDecimals(6)
+        self.spinbox_integration_width.valueChanged.connect(self.process_integrationwidth)
+        
+        self.label_integration_centre = QLabel('Centre (MHz)')
+        self.spinbox_integration_centre = QDoubleSpinBox()
+        self.spinbox_integration_centre.setRange(-1e9, 1e9)
+        self.spinbox_integration_centre.setSingleStep(1e-6)
+        self.spinbox_integration_centre.setValue(0.0)
+        self.spinbox_integration_centre.setDecimals(6)
+        self.spinbox_integration_centre.valueChanged.connect(self.process_integrationcentre)
+        
+        #self.canvas.mpl_connect('button_press_event', self.process_button)
+        
+        l = QVBoxLayout()
+        l1 = QHBoxLayout()
+        l1.addWidget(self.label_integration_width)
+        l1.addWidget(self.spinbox_integration_width)
+        l2 = QHBoxLayout()
+        l2.addWidget(self.label_integration_centre)
+        l2.addWidget(self.spinbox_integration_centre)
+        l.addLayout(l1)
+        l.addLayout(l2)
+        return l
         
         #l = QHBoxLayout()
         #l.addWidget(self.button_fit)
         #return l
 
+    def process_integrationwidth(self):
+        self.spinbox_integration_width.setSingleStep(0.05 * self.spinbox_integration_width.value())
+        self.update()
+        
+    def process_integrationcentre(self):
+        self.update()
+
     def process_button(self, event):
-        if(event.button == 1):
-            if not(event.xdata is None):
-                if(self.moving_left):
-                    self.left_pivot = event.xdata
-                else:
-                    self.right_pivot = event.xdata
-                self.moving_left = not(self.moving_left)
-                self.update()
+        nav_state = self.ax.get_navigate_mode()
+        if(nav_state is None):
+            if(event.button == 1):
+                if not(event.xdata is None):
+                    if(self.moving_left):
+                        self.left_pivot = event.xdata
+                    else:
+                        self.right_pivot = event.xdata
+                    
+                    self.moving_left = not(self.moving_left)
+                    self.update()
 
     def plot_logic(self):
         index = self.fileselector.spinbox_index.value()
@@ -59,6 +96,11 @@ class TabFourierTransform(Tab):
         s_imags = np.imag(s_complexes)
 
         fftfreq = np.fft.fftshift(np.fft.fftfreq(s_complexes[index].shape[0], d=timespacing)) # microseconds
+        self.spinbox_integration_centre.setRange(np.min(fftfreq), np.max(fftfreq))
+        
+        self.left_pivot = self.spinbox_integration_centre.value() - self.spinbox_integration_width.value()/2.0
+        self.right_pivot = self.spinbox_integration_centre.value() + self.spinbox_integration_width.value()/2.0
+        
         fft = np.zeros_like(s_complexes, dtype=np.complex128)
         for i in range(s_complexes.shape[0]):
             fft[i] = np.fft.fftshift(np.fft.fft(s_complexes[i]))
