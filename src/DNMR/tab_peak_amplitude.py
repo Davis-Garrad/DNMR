@@ -26,8 +26,12 @@ class TabPeakAmplitude(Tab):
         self.combobox_labelling.addItem('Load Order')
         self.combobox_labelling.setCurrentIndex(0)
         
+        self.checkbox_integrate = QCheckBox('Use Integrated FT')
+        self.checkbox_integrate.setCheckState(Qt.CheckState(2))
+        
         layout = QHBoxLayout()
         layout.addWidget(self.combobox_labelling)
+        layout.addWidget(self.checkbox_integrate)
         return layout
         
     def deconstruct_dict(self, d, plunge=False):
@@ -87,20 +91,25 @@ class TabPeakAmplitude(Tab):
         except:
             del_times = self.fileselector.data.sequence['0'].relaxation_time # Legacy
 
-        integrations = np.zeros(real.shape[0])
-        start_index = np.argmin(np.abs(self.data_widgets['tab_ft'].left_pivot - freq))
-        end_index = np.argmin(np.abs(self.data_widgets['tab_ft'].right_pivot - freq))
-        if(end_index < start_index):
-            tmp = start_index
-            start_index = end_index
-            end_index = tmp
+        values = None
+        if(self.checkbox_integrate.isChecked()):
+            values = np.zeros(real.shape[0])
+            start_index = np.argmin(np.abs(self.data_widgets['tab_ft'].left_pivot - freq))
+            end_index = np.argmin(np.abs(self.data_widgets['tab_ft'].right_pivot - freq))
+            if(end_index < start_index):
+                tmp = start_index
+                start_index = end_index
+                end_index = tmp
 
-        integrations = np.sum(ft[:,start_index:end_index], axis=1)
-        #integrations /= np.max(np.abs(integrations))
-        integrals = integrations
-        
-        peaks = ft[:,len(ft)//2]
-        integrals = peaks
+            values = np.sum(ft[:,start_index:end_index], axis=1)
+        else:
+            times = self.data_widgets['tab_phase'].data[0]
+            complexes = self.data_widgets['tab_phase'].data[1]
+            
+            time_index = np.argmin(np.abs(self.fileselector.data['peak_locations'][:,None] - times), axis=1)
+            values = complexes[:,time_index]
+            
+        integrals = values
 
         if(self.combobox_labelling.currentText() == 'Load Order'):
             indices = np.linspace(0, self.fileselector.data['size'], self.fileselector.data['size'], endpoint=False)
