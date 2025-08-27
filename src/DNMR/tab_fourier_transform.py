@@ -80,7 +80,7 @@ class TabFourierTransform(Tab):
 
     def plot_logic(self):
         index = self.fileselector.spinbox_index.value()
-
+        
         times = self.data_widgets['tab_phase'].data[0]
         complexes = self.data_widgets['tab_phase'].data[1]
 
@@ -96,6 +96,10 @@ class TabFourierTransform(Tab):
         s_imags = np.imag(s_complexes)
 
         fftfreq = np.fft.fftshift(np.fft.fftfreq(s_complexes[index].shape[0], d=timespacing)) # microseconds
+        
+        # update spinboxes.
+        self.spinbox_integration_centre.setRange(np.min(fftfreq), np.max(fftfreq))
+        self.spinbox_integration_centre.setSingleStep(np.max(fftfreq) * 1e-2)
         self.spinbox_integration_centre.setRange(np.min(fftfreq), np.max(fftfreq))
         
         self.left_pivot = self.spinbox_integration_centre.value() - self.spinbox_integration_width.value()/2.0

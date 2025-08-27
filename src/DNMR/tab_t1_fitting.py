@@ -35,6 +35,7 @@ class TabT1Fit(Tab):
         self.pushbutton_fit.clicked.connect(self.fit)
         
         self.checkbox_normalize = QCheckBox('Normalize?')
+        self.checkbox_normalize.setCheckState(Qt.CheckState(2)) # checked.
 
         l = QHBoxLayout()
         lv = QVBoxLayout()
@@ -283,8 +284,8 @@ class TabT1Fit(Tab):
         if(self.x0 is not None):
             cnt = 0
             for i in out_frame:
-                params_dict[i['label']] = [ str(self.x0[cnt]) + ' ' + i.units ]
-                params_dict[i['label']+' error'] = [ str(self.sigmas[cnt]) + ' ' + i.units ]
+                params_dict[i['widget'].label + f'[{i["widget"].units}]'] = [ str(self.x0[cnt]) ]
+                params_dict[i['widget'].label+' error' + f'[{i["widget"].units}]'] = [ str(self.sigmas[cnt]) ]
                 cnt += 1
         
         index = self.fileselector.spinbox_index.value()
