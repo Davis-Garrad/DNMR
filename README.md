@@ -29,3 +29,22 @@ Any additional arguments will be loaded as datafiles into the zero-th channel. I
 python -m DNMR test_file_0p25K.hdf test_file_1K.hdf
 ```
 (one could also just use the buttons and dialogs in the GUI)
+
+### Modification
+
+To add new tabs, there are a few different steps:
+1. Read through `tab.py`. This is the class that your new tab will be inheriting from.
+    a. Take specific note of the functions `generate_layout`, `plot_logic`, and `get_exported_data`. These are the functions you'll override.
+    b. Notice that every tab is given a matplotlib axis, `self.ax`, a reference to `data_widgets['fileselector']` (`self.fileselector`), and a shared pool of other tabs, `self.data_widgets`, which it adds itself to upon construction.
+2. Create a new file, `example_tab.py` for example.
+    a. "Fill in" the functions listed above. Don't forget to supercall the Tab constructor
+    b. Feel free to take functionality from `miniwidgets.py`, pull data from other widgets (from `data_widgets[X].data`, for example; these tabs are all designed under a "friendly" architecture, in C++ terms), and separate `plot_logic` and `update` calls intelligently.
+3. Once you're happy with some basic functionality, edit the `__main__.py` file.
+    a. In the MainWindow `__init__` function, you'll need to create your tab with the rest of them.
+    b. After creation, you must add your tab to the `tabwidget_tabs` object so that it will be loaded as a functional tab.
+    
+Once you've completed the above, you should see your tab in the main window. 
+
+### Notes
+
+If you're editing the code, it may be most useful to `git clone` the repository, then `pip install -e .` inside, to create a suitable development environment. I learned about this functionality through this project, so you might too :)

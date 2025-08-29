@@ -15,7 +15,7 @@ def get_tnt_data(fn: str):
     '''Retrieves the same data as the below function, but from a .tnt file'''
     f = tnt.TNTfile(fn)
     print('WARNING: TNT file loading is not without it\'s concerns. If you don\'t know what you\'re doing, don\'t do this!')
-    input('WARNING: Mandatory input so the user is forced to read the above: ')
+    input('WARNING: Mandatory input so the user is forced to read the above. Type anything to continue: ')
     
     complexes = np.swapaxes(f.DATA, 0, 1)[:,:,0,0]
     times = np.broadcast_to(f.fid_times()[None,:], complexes.shape)
