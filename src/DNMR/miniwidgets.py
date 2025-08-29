@@ -8,11 +8,14 @@ import numpy as np
 import DNMR.fileops as fileops
 
 class FitParameterWidget(QWidget):
-    def __init__(self, label, units, parent=None):
+    def __init__(self, label, units, parent=None, xplot=False, yplot=False):
         super(FitParameterWidget, self).__init__(parent)
         
         self.label = label
         self.units = units
+        
+        self.xplot=xplot
+        self.yplot=yplot
         
         self.checkbox_fix    = QCheckBox('Fix?')
         self.checkbox_fix.stateChanged.connect(self.update_fixed)

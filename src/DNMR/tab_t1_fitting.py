@@ -26,6 +26,9 @@ class TabT1Fit(Tab):
         self.excluded_points_indices = []
         self.x0 = None
         self.sigmas = None
+        
+    def get_current_oframe(self):
+        return self.output_frames[self.combobox_fittingroutine.currentText()]
 
     def generate_layout(self):
         self.combobox_fittingroutine = QComboBox()
@@ -44,31 +47,35 @@ class TabT1Fit(Tab):
         l.addLayout(lv)
         l.addWidget(self.pushbutton_fit)
 
-        def add_fit_frame(name, *args):
-            # fit output
+        def add_fit_frame(name, *args, **kwargs):
+            ''' Creates a frame widget for a new fit type and its output. args are, in order, the name of a fit variable, then unit string, then repeat.
+            
+            kwargs:
+             - xplot: a list of indices corresponding to the fit variables. These will be plotted on the x axis.
+             - yplot: a list of indices corresponding to the fit variables. These will be plotted on the y axis.
+            '''
             frm = QFrame() # TODO: Make this better.
             frm.hide()
             lo = QVBoxLayout()
-            self.output_frames[name] = [ frm ]
+            self.output_frames[name] = { 'frame': frm, 'widgets': [] }
+            
+            xplot = kwargs['xplot'] if 'xplot' in kwargs.keys() else []
+            yplot = kwargs['yplot'] if 'yplot' in kwargs.keys() else []
+            
             for i in range(len(args)//2):
-                w = FitParameterWidget(args[2*i], args[2*i+1])
-                #w = QLineEdit('fitting...')
-                #fix = QCheckBox('Fix?')
-                #li = QHBoxLayout()
-                #li.addWidget(fix)
-                #li.addWidget(w)
+                w = FitParameterWidget(args[2*i], args[2*i+1], xplot=i in xplot, yplot=i in yplot)
                 lo.addWidget(w)
-                self.output_frames[name] += [ {'widget': w } ]
+                self.output_frames[name]['widgets'] += [ w ]
             self.combobox_fittingroutine.addItem(name)
                 
             frm.setLayout(lo)
             l.addWidget(frm)
 
-        # Title, var_name, var_units, var_name, var_units, ...
+        # Title, var_name, var_units, var_name, var_units, ....
             # DEVELOPER NOTE: If you want to add more options for this, make sure to define fit_func in ``fit`` below
-        add_fit_frame('7/2 Spin',          '\u03b3\u2080', '', 's', '', 'T\u2081', '\u03bcs', 'r', '')
-        add_fit_frame('7/2 Spin (Sat. 1)', '\u03b3\u2080', '', 's', '', 'T\u2081', '\u03bcs', 'r', '')
-        add_fit_frame('1/2 Spin',          '\u03b3\u2080', '', 's', '', 'T\u2081', '\u03bcs', 'r', '')
+        add_fit_frame('7/2 Spin',          '\u03b3\u2080', '', 's', '', 'T\u2081', '\u03bcs', 'r', '', xplot=[2])
+        add_fit_frame('7/2 Spin (Sat. 1)', '\u03b3\u2080', '', 's', '', 'T\u2081', '\u03bcs', 'r', '', xplot=[2])
+        add_fit_frame('1/2 Spin',          '\u03b3\u2080', '', 's', '', 'T\u2081', '\u03bcs', 'r', '', xplot=[2])
         #add_fit_frame('Spin 1', '\u03b30', '', 's', '', 'T1', '\u03bcs', 'r', '')
         # ...
         
@@ -141,7 +148,7 @@ class TabT1Fit(Tab):
             else:
                 excluded_integrations += [integrations[i]]
                 excluded_del_times += [del_times[i]]
-        plt_pts = self.ax.errorbar(plotted_del_times, plotted_integrations, label='integrations', linestyle='', marker='o', yerr=plotted_errs)
+        plt_pts = self.ax.errorbar(plotted_del_times, plotted_integrations, label='\u222b FT', linestyle='', marker='o', yerr=plotted_errs)
         self.ax.scatter(excluded_del_times, excluded_integrations, color=(plt_pts[-1][-1]).get_color(), linestyle='', marker='x')
         
         post_aq_max = np.max(self.fileselector.data.params.post_acquisition_time * 1e3) # this is in ms. Our axes in us
@@ -151,22 +158,27 @@ class TabT1Fit(Tab):
 
         if(self.plot_data[0].shape[0] > 0):
             params_list = ''
-            out_frame = self.output_frames[self.combobox_fittingroutine.currentText()]
-            for i in out_frame[1:]:
-                params_list += f'{i['widget'].get_full_display()}\n'
+            out_frame = self.get_current_oframe()
+            for wi in out_frame['widgets']:
+                params_list += f'{wi.get_full_display()}\n'
+        
+                if(wi.xplot):
+                    self.ax.axvline(wi.get_value(), linestyle='--')
+                if(wi.yplot):
+                    self.ax.axhline(wi.get_value(), linestyle='--')
             params_list = params_list[:-1]
             self.ax.plot(self.plot_data[0], self.plot_data[1], label=params_list)
         
     def update_fit_type(self):
         for key, val in self.output_frames.items():
-            val[0].hide()
-        out_frame = self.output_frames[self.combobox_fittingroutine.currentText()]
-        out_frame[0].show()
+            val['frame'].hide()
+        out_frame = self.get_current_oframe()
+        out_frame['frame'].show()
         
     def fit(self):
         self.update() # get most recent values to fit
         self.plot_data = (np.array([]),np.array([]))
-        out_frame = self.output_frames[self.combobox_fittingroutine.currentText()]
+        out_frame = self.get_current_oframe()
         bounds = None
         try:
             del_times = self.fileselector.data.sequence['0'].delay_time
@@ -222,10 +234,11 @@ class TabT1Fit(Tab):
         def cost_func(args, x, y, yerr):
             return np.sum(np.square((fit_func(args, x) - y)/np.maximum(yerr, 0.01))) # more points is more fits
             
-        for i in range(len(out_frame)-1):
-            if(out_frame[i+1]['widget'].is_fixed()):
+        for i in range(len(out_frame['widgets'])):
+            widget = out_frame['widgets'][i]
+            if(widget.is_fixed()):
                 # Fix
-                fv = out_frame[i+1]['widget'].get_value()
+                fv = widget.get_value()
                 bounds[i] = [ fv, fv ]
             
         included_xvals = []
@@ -271,21 +284,21 @@ class TabT1Fit(Tab):
                 display_sigma = np.round(self.sigmas[i], rounded_digits)
                 display_x = np.round(self.x0[i], rounded_digits)
                 
-                if not(out_frame[i+1]['widget'].is_fixed()):
-                    out_frame[i+1]['widget'].set_value(display_x, display_sigma)
-                #out_frame[i+1]['widget'].setText(f'{out_frame[i+1]["label"]}={display_x:,}\u00b1{display_sigma:,}{out_frame[i+1]["units"]}')
+                widget = out_frame['widgets'][i]
+                if not(widget.is_fixed()):
+                    widget.set_value(display_x, display_sigma)
         except Exception as e:
             traceback.print_exc()
         self.update()
         
     def get_exported_data(self):
-        out_frame = self.output_frames[self.combobox_fittingroutine.currentText()][1:]
+        out_frame = self.get_current_oframe()
         params_dict = {}
         if(self.x0 is not None):
             cnt = 0
-            for i in out_frame:
-                params_dict[i['widget'].label + f'[{i["widget"].units}]'] = [ str(self.x0[cnt]) ]
-                params_dict[i['widget'].label+' error' + f'[{i["widget"].units}]'] = [ str(self.sigmas[cnt]) ]
+            for wi in out_frame['widgets']:
+                params_dict[wi.label + f'[{wi.units}]'] = [ str(self.x0[cnt]) ]
+                params_dict[wi.label + ' error' + f'[{wi.units}]'] = [ str(self.sigmas[cnt]) ]
                 cnt += 1
         
         index = self.fileselector.spinbox_index.value()
